@@ -14,6 +14,15 @@ class SoundFXManager {
     return this.ctx;
   }
 
+  public setMuted(muted: boolean): boolean {
+    this.isMuted = muted;
+    return this.isMuted;
+  }
+
+  public isAudioMuted(): boolean {
+    return this.isMuted;
+  }
+
   public ensureAudioActive(): void {
     try {
       this.initContext();

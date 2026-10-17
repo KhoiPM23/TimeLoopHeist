@@ -64,6 +64,7 @@ export interface LaserState {
 
 export interface LootState {
   id: string;
+  name: string;
   x: number;
   y: number;
   radius: number;
@@ -77,11 +78,19 @@ export interface Wall {
   height: number;
 }
 
+export interface TutorialHint {
+  trigger: 'START' | 'ON_SWITCH' | 'AFTER_REWIND' | 'NEAR_LOOT';
+  text: string;
+}
+
 export interface LevelConfig {
   id: string;
+  stageNumber: number;
   name: string;
-  maxTicks: number; // e.g. 900 ticks = 18s at 50Hz
-  maxLoops: number; // e.g. 3
+  subtitle: string;
+  objectiveText: string;
+  maxTicks: number; // e.g. 700 ticks = 14s at 50Hz
+  maxLoops: number; // e.g. 2, 3, or 4
   spawn: Vector2D;
   extraction: { x: number; y: number; width: number; height: number };
   walls: Wall[];
@@ -90,9 +99,10 @@ export interface LevelConfig {
   doors: DoorState[];
   lasers: LaserState[];
   loot: LootState;
+  hints?: TutorialHint[];
 }
 
-export type GameStatus = 'RUNNING' | 'REWINDING' | 'WON' | 'BUSTED' | 'OUT_OF_TIME';
+export type GameStatus = 'RUNNING' | 'PAUSED' | 'REWINDING' | 'WON' | 'BUSTED' | 'OUT_OF_TIME';
 
 export interface GameState {
   status: GameStatus;
@@ -110,10 +120,11 @@ export interface GameState {
   alarmTriggered: boolean;
   alarmReason?: string;
   levelCompleted: boolean;
+  activeHint?: string;
 }
 
 export interface SimEvent {
-  type: 'ALARM' | 'LOOT_TAKEN' | 'SWITCH_DOWN' | 'SWITCH_UP' | 'DOOR_OPEN' | 'DOOR_CLOSE' | 'WIN' | 'DEATH';
+  type: 'ALARM' | 'LOOT_TAKEN' | 'SWITCH_DOWN' | 'SWITCH_UP' | 'DOOR_OPEN' | 'DOOR_CLOSE' | 'WIN' | 'DEATH' | 'REWIND';
   reason?: string;
   position?: Vector2D;
 }

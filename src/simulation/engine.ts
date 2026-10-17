@@ -1,3 +1,4 @@
+import { ALL_LEVELS } from './levels';
 import {
   GameState,
   GuardState,
@@ -9,6 +10,7 @@ import {
 } from './types';
 
 export class TimeLoopEngine {
+  private levelIndex: number = 0;
   private level: LevelConfig;
   private currentLoopIndex: number = 0;
   private loopRecordings: PlayerInput[][] = [];
@@ -18,9 +20,33 @@ export class TimeLoopEngine {
   private state: GameState;
   private playerSpeed: number = 3.2;
 
-  constructor(level: LevelConfig) {
-    this.level = JSON.parse(JSON.stringify(level));
+  constructor(initialLevelIndex = 0) {
+    this.levelIndex = Math.max(0, Math.min(ALL_LEVELS.length - 1, initialLevelIndex));
+    this.level = JSON.parse(JSON.stringify(ALL_LEVELS[this.levelIndex]));
     this.state = this.initInitialState();
+  }
+
+  public getLevelIndex(): number {
+    return this.levelIndex;
+  }
+
+  public getTotalLevels(): number {
+    return ALL_LEVELS.length;
+  }
+
+  public loadLevel(index: number): void {
+    if (index < 0 || index >= ALL_LEVELS.length) return;
+    this.levelIndex = index;
+    this.level = JSON.parse(JSON.stringify(ALL_LEVELS[this.levelIndex]));
+    this.resetEntireRun();
+  }
+
+  public nextLevel(): boolean {
+    if (this.levelIndex < ALL_LEVELS.length - 1) {
+      this.loadLevel(this.levelIndex + 1);
+      return true;
+    }
+    return false;
   }
 
   private initInitialState(): GameState {
@@ -45,6 +71,15 @@ export class TimeLoopEngine {
       });
     }
 
+    let initialHint: string | undefined = undefined;
+    if (this.level.hints) {
+      if (this.currentLoopIndex === 0) {
+        initialHint = this.level.hints.find(h => h.trigger === 'START')?.text;
+      } else {
+        initialHint = this.level.hints.find(h => h.trigger === 'AFTER_REWIND')?.text;
+      }
+    }
+
     return {
       status: 'RUNNING',
       currentTick: 0,
@@ -59,7 +94,8 @@ export class TimeLoopEngine {
       lasers: JSON.parse(JSON.stringify(this.level.lasers)),
       loot: JSON.parse(JSON.stringify(this.level.loot)),
       alarmTriggered: false,
-      levelCompleted: false
+      levelCompleted: false,
+      activeHint: initialHint
     };
   }
 
@@ -71,6 +107,14 @@ export class TimeLoopEngine {
     return this.level;
   }
 
+  public setPaused(paused: boolean): void {
+    if (paused && this.state.status === 'RUNNING') {
+      this.state.status = 'PAUSED';
+    } else if (!paused && this.state.status === 'PAUSED') {
+      this.state.status = 'RUNNING';
+    }
+  }
+
   public step(liveInput: PlayerInput): SimEvent[] {
     const events: SimEvent[] = [];
     if (this.state.status !== 'RUNNING') {
@@ -80,7 +124,7 @@ export class TimeLoopEngine {
     // 1. Record live input
     this.currentLoopInputs.push({ ...liveInput });
 
-    // 2. Simulate Ghost Players
+    // 2. Simulate Ghost Players from recordings
     for (let g = 0; g < this.state.ghostPlayers.length; g++) {
       const ghost = this.state.ghostPlayers[g];
       const recorded = this.loopRecordings[g];
@@ -99,6 +143,8 @@ export class TimeLoopEngine {
 
     // 5. Update Switches
     const allActors = [this.state.activePlayer, ...this.state.ghostPlayers];
+    let isAnySwitchPressedByActivePlayer = false;
+
     for (const sw of this.state.switches) {
       const wasPressed = sw.isPressed;
       sw.isPressed = allActors.some(actor => {
@@ -106,10 +152,32 @@ export class TimeLoopEngine {
         return distSq <= (actor.radius + sw.radius) ** 2;
       });
 
+      // Check if active player specifically is on this switch (for tutorial hint)
+      const distToActive = Math.hypot(this.state.activePlayer.x - sw.x, this.state.activePlayer.y - sw.y);
+      if (distToActive <= this.state.activePlayer.radius + sw.radius) {
+        isAnySwitchPressedByActivePlayer = true;
+      }
+
       if (!wasPressed && sw.isPressed) {
         events.push({ type: 'SWITCH_DOWN', position: { x: sw.x, y: sw.y } });
       } else if (wasPressed && !sw.isPressed) {
         events.push({ type: 'SWITCH_UP', position: { x: sw.x, y: sw.y } });
+      }
+    }
+
+    // Tutorial dynamic hint progression
+    if (this.level.hints) {
+      if (this.currentLoopIndex === 0) {
+        if (isAnySwitchPressedByActivePlayer) {
+          const onSwitchHint = this.level.hints.find(h => h.trigger === 'ON_SWITCH');
+          if (onSwitchHint) this.state.activeHint = onSwitchHint.text;
+        } else if (!this.state.activeHint) {
+          const startHint = this.level.hints.find(h => h.trigger === 'START');
+          if (startHint) this.state.activeHint = startHint.text;
+        }
+      } else {
+        const rewindHint = this.level.hints.find(h => h.trigger === 'AFTER_REWIND');
+        if (rewindHint) this.state.activeHint = rewindHint.text;
       }
     }
 
@@ -194,7 +262,7 @@ export class TimeLoopEngine {
     this.state.currentTick = this.currentTick;
     if (this.currentTick >= this.level.maxTicks) {
       this.state.status = 'OUT_OF_TIME';
-      this.state.alarmReason = 'Time window collapsed!';
+      this.state.alarmReason = 'Time window expired!';
       events.push({ type: 'ALARM', reason: this.state.alarmReason });
     }
 
@@ -226,7 +294,6 @@ export class TimeLoopEngine {
   }
 
   private collidesWithWalls(x: number, y: number, radius: number): boolean {
-    // Check static walls
     for (const wall of this.level.walls) {
       if (this.circleIntersectsRect(x, y, radius, wall.x, wall.y, wall.width, wall.height)) {
         return true;
@@ -288,7 +355,7 @@ export class TimeLoopEngine {
 
     if (diff > guard.fov / 2) return false;
 
-    // Raycast wall blocking
+    // Raycast wall & door blocking
     return !this.isLineBlockedByWalls(guard.x, guard.y, actor.x, actor.y);
   }
 
@@ -336,7 +403,7 @@ export class TimeLoopEngine {
   }
 
   public rewindToNextLoop(): boolean {
-    // If we've reached max loops, restart run from 0
+    // If we've reached max loops, restart run from loop 1
     if (this.currentLoopIndex >= this.level.maxLoops - 1) {
       this.resetEntireRun();
       return false;

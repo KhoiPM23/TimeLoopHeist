@@ -1,50 +1,66 @@
 import { soundFX } from './audio/soundFX';
 import { GameRenderer } from './renderer/gameView';
 import { TimeLoopEngine } from './simulation/engine';
-import { LEVEL_1 } from './simulation/level1';
 import { PlayerInput, SimEvent } from './simulation/types';
 
 // DOM Elements
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+const stageBadge = document.getElementById('stageBadge') as HTMLElement;
 const loopBadge = document.getElementById('loopBadge') as HTMLElement;
 const timeBarFill = document.getElementById('timeBarFill') as HTMLElement;
 const objStatus = document.getElementById('objStatus') as HTMLElement;
 const secStatus = document.getElementById('secStatus') as HTMLElement;
 const timeStatus = document.getElementById('timeStatus') as HTMLElement;
 
+const btnPause = document.getElementById('btnPause') as HTMLButtonElement;
+const pauseLabel = document.getElementById('pauseLabel') as HTMLElement;
 const btnRewind = document.getElementById('btnRewind') as HTMLButtonElement;
 const btnReset = document.getElementById('btnReset') as HTMLButtonElement;
 const btnMute = document.getElementById('btnMute') as HTMLButtonElement;
-const btnHelp = document.getElementById('btnHelp') as HTMLButtonElement;
 const muteLabel = document.getElementById('muteLabel') as HTMLElement;
+const btnMenu = document.getElementById('btnMenu') as HTMLButtonElement;
 
-const modalBrief = document.getElementById('modalBrief') as HTMLElement;
-const btnStartBrief = document.getElementById('btnStartBrief') as HTMLButtonElement;
-const modalWin = document.getElementById('modalWin') as HTMLElement;
-const btnPlayAgain = document.getElementById('btnPlayAgain') as HTMLButtonElement;
+// Screens & Modals
+const modalTitle = document.getElementById('modalTitle') as HTMLElement;
+const btnStartGame = document.getElementById('btnStartGame') as HTMLButtonElement;
+const modalStageClear = document.getElementById('modalStageClear') as HTMLElement;
+const stageClearTitle = document.getElementById('stageClearTitle') as HTMLElement;
+const stageClearStats = document.getElementById('stageClearStats') as HTMLElement;
+const btnNextStage = document.getElementById('btnNextStage') as HTMLButtonElement;
+const modalGrandClear = document.getElementById('modalGrandClear') as HTMLElement;
+const btnReplayAll = document.getElementById('btnReplayAll') as HTMLButtonElement;
 const modalBusted = document.getElementById('modalBusted') as HTMLElement;
 const bustedReason = document.getElementById('bustedReason') as HTMLElement;
 const btnRetryLoop = document.getElementById('btnRetryLoop') as HTMLButtonElement;
-const btnRestartAll = document.getElementById('btnRestartAll') as HTMLButtonElement;
+const btnRestartStage = document.getElementById('btnRestartStage') as HTMLButtonElement;
 
-// Initialization
-const engine = new TimeLoopEngine(LEVEL_1);
+// Engine & Systems
+const engine = new TimeLoopEngine(0); // Start at Stage 0 (Tutorial)
 const renderer = new GameRenderer(canvas);
 
 // Input state
 const keys: Record<string, boolean> = {};
 let isGameActive = false;
-let isAudioMuted = false;
 
 window.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   soundFX.ensureAudioActive();
 
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+    handleTogglePause();
+    return;
+  }
+  if (e.key === 'm' || e.key === 'M') {
+    handleToggleMute();
+    return;
+  }
   if (e.key === 'r' || e.key === 'R') {
     handleRewind();
+    return;
   }
   if (e.key === 'f' || e.key === 'F') {
-    handleResetAll();
+    handleResetStage();
+    return;
   }
 });
 
@@ -65,70 +81,102 @@ function pollInput(): PlayerInput {
   return { dx, dy, interact };
 }
 
-function handleRewind(): void {
+function handleTogglePause(): void {
   if (!isGameActive) return;
+  const state = engine.getState();
+  const willPause = state.status !== 'PAUSED';
+  engine.setPaused(willPause);
+  pauseLabel.textContent = willPause ? 'RESUME' : 'PAUSE';
+  btnPause.style.borderColor = willPause ? '#00ffaa' : '#293d5c';
+}
+
+function handleToggleMute(): void {
+  const current = soundFX.isAudioMuted();
+  const newMuted = soundFX.setMuted(!current);
+  muteLabel.textContent = newMuted ? 'SFX: OFF' : 'SFX: ON';
+}
+
+function handleRewind(): void {
+  if (!isGameActive || engine.getState().status === 'PAUSED') return;
   soundFX.playRewind();
   modalBusted.classList.add('hidden');
   const advanced = engine.rewindToNextLoop();
   if (!advanced) {
-    // If exceeded max loops, reset
     engine.resetEntireRun();
   }
   updateHUD();
 }
 
-function handleResetAll(): void {
+function handleResetStage(): void {
   soundFX.playRewind();
   engine.resetEntireRun();
   modalBusted.classList.add('hidden');
-  modalWin.classList.add('hidden');
+  modalStageClear.classList.add('hidden');
+  modalGrandClear.classList.add('hidden');
   updateHUD();
 }
 
 // Button listeners
-btnStartBrief.addEventListener('click', () => {
-  modalBrief.classList.add('hidden');
+btnStartGame.addEventListener('click', () => {
+  modalTitle.classList.add('hidden');
   isGameActive = true;
   soundFX.ensureAudioActive();
+  updateHUD();
 });
 
-btnHelp.addEventListener('click', () => {
-  modalBrief.classList.remove('hidden');
+btnMenu.addEventListener('click', () => {
+  modalTitle.classList.remove('hidden');
 });
 
-btnRewind.addEventListener('click', () => {
-  handleRewind();
+document.querySelectorAll('.btn-stage').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const stageIdx = parseInt(btn.getAttribute('data-stage') || '0', 10);
+    engine.loadLevel(stageIdx);
+    modalTitle.classList.add('hidden');
+    isGameActive = true;
+    updateHUD();
+  });
 });
 
-btnReset.addEventListener('click', () => {
-  handleResetAll();
-});
-
-btnPlayAgain.addEventListener('click', () => {
-  modalWin.classList.add('hidden');
-  handleResetAll();
-});
+btnPause.addEventListener('click', handleTogglePause);
+btnRewind.addEventListener('click', handleRewind);
+btnReset.addEventListener('click', handleResetStage);
+btnMute.addEventListener('click', handleToggleMute);
 
 btnRetryLoop.addEventListener('click', () => {
   modalBusted.classList.add('hidden');
   soundFX.playRewind();
   engine.resetCurrentLoop();
+  updateHUD();
 });
 
-btnRestartAll.addEventListener('click', () => {
-  handleResetAll();
+btnRestartStage.addEventListener('click', () => {
+  handleResetStage();
 });
 
-btnMute.addEventListener('click', () => {
-  isAudioMuted = !isAudioMuted;
-  muteLabel.textContent = isAudioMuted ? 'SFX: OFF' : 'SFX: ON';
-  // Also pass to soundFX if needed
+btnNextStage.addEventListener('click', () => {
+  modalStageClear.classList.add('hidden');
+  const hasNext = engine.nextLevel();
+  if (hasNext) {
+    updateHUD();
+  } else {
+    modalGrandClear.classList.remove('hidden');
+  }
+});
+
+btnReplayAll.addEventListener('click', () => {
+  modalGrandClear.classList.add('hidden');
+  engine.loadLevel(0);
+  updateHUD();
 });
 
 function updateHUD(): void {
   const state = engine.getState();
+  const level = engine.getLevel();
 
+  stageBadge.textContent = level.name;
   loopBadge.textContent = `LOOP ${state.currentLoopIndex} / ${state.maxLoops}`;
+
   if (state.currentLoopIndex === state.maxLoops) {
     loopBadge.style.background = 'rgba(255, 68, 68, 0.2)';
     loopBadge.style.borderColor = '#ff4444';
@@ -158,10 +206,10 @@ function updateHUD(): void {
 
   // Objective status
   if (state.activePlayer.hasLoot) {
-    objStatus.textContent = 'DIAMOND SECURED! ESCAPE TO EXTRACTION!';
+    objStatus.textContent = 'LOOT RETRIEVED! HEAD TO EXTRACTION ZONE!';
     objStatus.style.color = '#00ffaa';
   } else {
-    objStatus.textContent = 'INFILTRATE & GRAB DIAMOND';
+    objStatus.textContent = level.objectiveText;
     objStatus.style.color = '#38bdf8';
   }
 
@@ -191,7 +239,16 @@ function processSimEvents(events: SimEvent[]): void {
       modalBusted.classList.remove('hidden');
     } else if (ev.type === 'WIN') {
       soundFX.playVictory();
-      modalWin.classList.remove('hidden');
+      const currentIdx = engine.getLevelIndex();
+      const total = engine.getTotalLevels();
+
+      if (currentIdx === total - 1) {
+        modalGrandClear.classList.remove('hidden');
+      } else {
+        stageClearTitle.textContent = `${engine.getLevel().name} COMPLETE`;
+        stageClearStats.textContent = `Retrieved in Loop ${engine.getState().currentLoopIndex} of ${engine.getState().maxLoops}`;
+        modalStageClear.classList.remove('hidden');
+      }
     }
   }
 }
@@ -214,7 +271,7 @@ function gameLoop(currentTime: number): void {
       processSimEvents(lastEvents);
       accumulator -= TICK_DURATION_MS;
 
-      // Play footstep occasionally on movement
+      // Subtle footstep sound on movement
       if ((input.dx !== 0 || input.dy !== 0) && engine.getState().currentTick % 12 === 0) {
         soundFX.playFootstep();
       }
