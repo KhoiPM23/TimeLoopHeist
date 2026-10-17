@@ -459,6 +459,142 @@ export const ALL_LEVELS: LevelConfig[] = [
       radius: 20,
       isCollected: false
     }
+  },
+
+  // STAGE 4: THE QUANTUM PARADOX VAULT
+  {
+    id: 'stage-4',
+    stageNumber: 4,
+    name: 'STAGE 4: THE QUANTUM PARADOX VAULT',
+    subtitle: 'Triple temporal synchronization across security sectors.',
+    objectiveText: 'Loop 1: Hold North Grid A. Loop 2: Hold South Grid B. Loop 3: Override Core Interlock C. Loop 4: Extract Quantum Relic & escape!',
+    maxTicks: 1100, // 22 seconds at 50Hz
+    maxLoops: 4,
+    spawn: { x: 80, y: 520 },
+    extraction: { x: 40, y: 470, width: 90, height: 100 },
+    walls: [
+      // Outer boundaries
+      { x: 0, y: 0, width: 900, height: 20 },
+      { x: 0, y: 580, width: 900, height: 20 },
+      { x: 0, y: 0, width: 20, height: 600 },
+      { x: 880, y: 0, width: 20, height: 600 },
+
+      // Ingress partition
+      { x: 190, y: 0, width: 20, height: 220 },
+      { x: 190, y: 380, width: 20, height: 220 },
+
+      // Core chamber partition
+      { x: 590, y: 60, width: 20, height: 180 },
+      { x: 590, y: 360, width: 20, height: 180 },
+
+      // Vault Core
+      { x: 720, y: 150, width: 20, height: 100 },
+      { x: 720, y: 350, width: 20, height: 100 },
+      { x: 720, y: 150, width: 150, height: 20 },
+      { x: 720, y: 430, width: 150, height: 20 }
+    ],
+    guards: [
+      {
+        id: 'guard-q-north',
+        x: 480,
+        y: 110,
+        facingAngle: Math.PI / 2,
+        speed: 2.3,
+        waypoints: [
+          { x: 480, y: 90 },
+          { x: 480, y: 510 }
+        ],
+        currentWaypointIdx: 0,
+        fov: Math.PI / 3,
+        viewDistance: 175,
+        isAlerted: false
+      },
+      {
+        id: 'guard-q-vault',
+        x: 650,
+        y: 480,
+        facingAngle: -Math.PI / 2,
+        speed: 2.5,
+        waypoints: [
+          { x: 650, y: 480 },
+          { x: 650, y: 120 }
+        ],
+        currentWaypointIdx: 0,
+        fov: Math.PI / 3,
+        viewDistance: 170,
+        isAlerted: false
+      }
+    ],
+    switches: [
+      {
+        id: 'sw-q-laser1',
+        x: 260,
+        y: 90,
+        radius: 22,
+        isPressed: false,
+        color: '#00e5ff',
+        label: 'PERIMETER GATE [A]'
+      },
+      {
+        id: 'sw-q-laser2',
+        x: 260,
+        y: 490,
+        radius: 22,
+        isPressed: false,
+        color: '#ff00ea',
+        label: 'ENERGY SHIELD [B]'
+      },
+      {
+        id: 'sw-q-vault',
+        x: 650,
+        y: 300,
+        radius: 24,
+        isPressed: false,
+        color: '#ffea00',
+        label: 'VAULT OVERRIDE [C]'
+      }
+    ],
+    doors: [
+      {
+        id: 'door-q-perimeter',
+        x: 190,
+        y: 220,
+        width: 20,
+        height: 160,
+        isOpen: false,
+        openProgress: 0,
+        requiredSwitches: ['sw-q-laser1']
+      },
+      {
+        id: 'door-q-vault',
+        x: 720,
+        y: 250,
+        width: 20,
+        height: 100,
+        isOpen: false,
+        openProgress: 0,
+        requiredSwitches: ['sw-q-vault']
+      }
+    ],
+    lasers: [
+      {
+        id: 'laser-q-mid',
+        x1: 410,
+        y1: 300,
+        x2: 560,
+        y2: 300,
+        isActive: true,
+        controlledBySwitch: 'sw-q-laser2'
+      }
+    ],
+    loot: {
+      id: 'loot-quantum-core',
+      name: 'CHRONO PARADOX RELIC',
+      x: 800,
+      y: 295,
+      radius: 22,
+      isCollected: false
+    }
   }
 ];
 

@@ -117,8 +117,8 @@ export class GameRenderer {
     // 6. Security Lasers (Vibrating Optical Barrier with Floor Glow)
     this.renderLasers(state.lasers);
 
-    // 7. Patrol Guards (Volumetric Vision Cones & Tactical Sentry)
-    this.renderGuards(state.guards);
+    // 7. Patrol Guards (Volumetric Vision Cones & Tactical Sentry with Wall Occlusion)
+    this.renderGuards(state.guards, level.walls, state.doors);
 
     // 8. Loot (Floating Quantum Relic)
     this.renderLoot(state.loot);
@@ -370,13 +370,20 @@ export class GameRenderer {
     }
   }
 
-  private renderGuards(guards: GameState['guards']): void {
+  private renderGuards(guards: GameState['guards'], walls: LevelConfig['walls'], doors: GameState['doors']): void {
     const { ctx } = this;
+
+    const blockers = [...walls];
+    for (const d of doors) {
+      if (d.openProgress < 0.8) {
+        blockers.push({ x: d.x, y: d.y, width: d.width, height: d.height });
+      }
+    }
 
     for (const guard of guards) {
       ctx.save();
 
-      // 1. Volumetric Flashlight Search Cone with soft gradient falloff
+      // 1. Raycasted Volumetric Flashlight Search Cone with soft gradient falloff and wall occlusion
       const coneGrad = ctx.createRadialGradient(
         guard.x, guard.y, 8,
         guard.x, guard.y, guard.viewDistance
@@ -385,16 +392,30 @@ export class GameRenderer {
       coneGrad.addColorStop(0.65, 'rgba(255, 200, 50, 0.15)');
       coneGrad.addColorStop(1, 'rgba(255, 180, 0, 0.0)');
 
+      const numRays = 30;
+      const startAngle = guard.facingAngle - guard.fov / 2;
+      const endAngle = guard.facingAngle + guard.fov / 2;
+      const angleStep = (endAngle - startAngle) / numRays;
+
       ctx.fillStyle = coneGrad;
       ctx.beginPath();
       ctx.moveTo(guard.x, guard.y);
-      ctx.arc(
-        guard.x,
-        guard.y,
-        guard.viewDistance,
-        guard.facingAngle - guard.fov / 2,
-        guard.facingAngle + guard.fov / 2
-      );
+
+      for (let i = 0; i <= numRays; i++) {
+        const a = startAngle + i * angleStep;
+        const cosA = Math.cos(a);
+        const sinA = Math.sin(a);
+        let closestDist = guard.viewDistance;
+
+        for (const b of blockers) {
+          const d = this.rayIntersectBox(guard.x, guard.y, cosA, sinA, b.x, b.y, b.width, b.height);
+          if (d !== null && d < closestDist && d > 0) {
+            closestDist = d;
+          }
+        }
+
+        ctx.lineTo(guard.x + cosA * closestDist, guard.y + sinA * closestDist);
+      }
       ctx.closePath();
       ctx.fill();
 
@@ -429,6 +450,37 @@ export class GameRenderer {
 
       ctx.restore();
     }
+  }
+
+  private rayIntersectBox(
+    ox: number, oy: number, dx: number, dy: number,
+    rx: number, ry: number, rw: number, rh: number
+  ): number | null {
+    let tmin = 0;
+    let tmax = Infinity;
+
+    if (Math.abs(dx) > 1e-6) {
+      const tx1 = (rx - ox) / dx;
+      const tx2 = (rx + rw - ox) / dx;
+      tmin = Math.max(tmin, Math.min(tx1, tx2));
+      tmax = Math.min(tmax, Math.max(tx1, tx2));
+    } else if (ox < rx || ox > rx + rw) {
+      return null;
+    }
+
+    if (Math.abs(dy) > 1e-6) {
+      const ty1 = (ry - oy) / dy;
+      const ty2 = (ry + rh - oy) / dy;
+      tmin = Math.max(tmin, Math.min(ty1, ty2));
+      tmax = Math.min(tmax, Math.max(ty1, ty2));
+    } else if (oy < ry || oy > ry + rh) {
+      return null;
+    }
+
+    if (tmax >= tmin && tmin >= 0) {
+      return tmin;
+    }
+    return null;
   }
 
   private renderLoot(loot: GameState['loot']): void {

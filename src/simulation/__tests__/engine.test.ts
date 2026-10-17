@@ -207,5 +207,29 @@ describe('TimeLoopHeist Multi-Stage Deterministic Engine', () => {
     expect(stateLoop2.loopTimelineEvents.length).toBe(2);
     expect(stateLoop2.loopTimelineEvents[0].some(e => e.type === 'SWITCH')).toBe(true);
   });
+
+  it('should initialize Stage 4 The Quantum Paradox Vault and support quad-loop synchronization', () => {
+    const engine = new TimeLoopEngine(4);
+    const level = engine.getLevel();
+    const state = engine.getState();
+    expect(state.status).toBe('RUNNING');
+
+    expect(level.id).toBe('stage-4');
+    expect(level.stageNumber).toBe(4);
+    expect(level.maxLoops).toBe(4);
+    expect(level.loot.name).toBe('CHRONO PARADOX RELIC');
+    expect(level.guards.length).toBe(2);
+    expect(level.switches.length).toBe(3);
+    expect(level.doors.length).toBe(2);
+    expect(level.lasers.length).toBe(1);
+
+    // Step across loop 1 to 4
+    for (let l = 1; l <= 3; l++) {
+      engine.step({ dx: 1, dy: 0, interact: false });
+      engine.rewindToNextLoop();
+      expect(engine.getState().currentLoopIndex).toBe(l + 1);
+      expect(engine.getState().ghostPlayers.length).toBe(l);
+    }
+  });
 });
 
