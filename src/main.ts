@@ -99,6 +99,7 @@ function handleToggleMute(): void {
 function handleRewind(): void {
   if (!isGameActive || engine.getState().status === 'PAUSED') return;
   soundFX.playRewind();
+  renderer.triggerRewindGlitch();
   modalBusted.classList.add('hidden');
   const advanced = engine.rewindToNextLoop();
   if (!advanced) {
@@ -106,6 +107,7 @@ function handleRewind(): void {
   }
   updateHUD();
 }
+
 
 function handleResetStage(): void {
   soundFX.playRewind();

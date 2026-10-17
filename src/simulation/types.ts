@@ -102,6 +102,12 @@ export interface LevelConfig {
   hints?: TutorialHint[];
 }
 
+export interface LoopTimelineEvent {
+  tick: number;
+  type: 'SWITCH' | 'DOOR' | 'LOOT' | 'ALARM';
+  label: string;
+}
+
 export type GameStatus = 'RUNNING' | 'PAUSED' | 'REWINDING' | 'WON' | 'BUSTED' | 'OUT_OF_TIME';
 
 export interface GameState {
@@ -121,6 +127,7 @@ export interface GameState {
   alarmReason?: string;
   levelCompleted: boolean;
   activeHint?: string;
+  loopTimelineEvents: LoopTimelineEvent[][];
 }
 
 export interface SimEvent {
@@ -128,3 +135,4 @@ export interface SimEvent {
   reason?: string;
   position?: Vector2D;
 }
+

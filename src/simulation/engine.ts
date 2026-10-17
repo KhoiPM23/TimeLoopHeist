@@ -3,6 +3,7 @@ import {
   GameState,
   GuardState,
   LevelConfig,
+  LoopTimelineEvent,
   PlayerInput,
   PlayerState,
   SimEvent,
@@ -15,6 +16,8 @@ export class TimeLoopEngine {
   private currentLoopIndex: number = 0;
   private loopRecordings: PlayerInput[][] = [];
   private currentLoopInputs: PlayerInput[] = [];
+  private pastLoopEvents: LoopTimelineEvent[][] = [];
+  private currentLoopEvents: LoopTimelineEvent[] = [];
 
   private currentTick: number = 0;
   private state: GameState;
@@ -95,9 +98,11 @@ export class TimeLoopEngine {
       loot: JSON.parse(JSON.stringify(this.level.loot)),
       alarmTriggered: false,
       levelCompleted: false,
-      activeHint: initialHint
+      activeHint: initialHint,
+      loopTimelineEvents: [...this.pastLoopEvents.map(e => [...e]), [...this.currentLoopEvents]]
     };
   }
+
 
   public getState(): Readonly<GameState> {
     return this.state;
@@ -160,6 +165,7 @@ export class TimeLoopEngine {
 
       if (!wasPressed && sw.isPressed) {
         events.push({ type: 'SWITCH_DOWN', position: { x: sw.x, y: sw.y } });
+        this.currentLoopEvents.push({ tick: this.currentTick, type: 'SWITCH', label: sw.label });
       } else if (wasPressed && !sw.isPressed) {
         events.push({ type: 'SWITCH_UP', position: { x: sw.x, y: sw.y } });
       }
@@ -196,6 +202,8 @@ export class TimeLoopEngine {
             this.state.status = 'BUSTED';
             this.state.alarmReason = 'Laser grid breached!';
             events.push({ type: 'ALARM', reason: this.state.alarmReason });
+            this.currentLoopEvents.push({ tick: this.currentTick, type: 'ALARM', label: 'Laser Grid Alert' });
+            this.state.loopTimelineEvents = [...this.pastLoopEvents.map(e => [...e]), [...this.currentLoopEvents]];
             return events;
           }
         }
@@ -213,7 +221,10 @@ export class TimeLoopEngine {
       door.isOpen = allSwitchesMet;
       if (door.isOpen && door.openProgress < 1) {
         door.openProgress = Math.min(1, door.openProgress + 0.1);
-        if (!wasOpen) events.push({ type: 'DOOR_OPEN' });
+        if (!wasOpen) {
+          events.push({ type: 'DOOR_OPEN' });
+          this.currentLoopEvents.push({ tick: this.currentTick, type: 'DOOR', label: 'Blast Gate Open' });
+        }
       } else if (!door.isOpen && door.openProgress > 0) {
         door.openProgress = Math.max(0, door.openProgress - 0.1);
         if (wasOpen) events.push({ type: 'DOOR_CLOSE' });
@@ -228,6 +239,8 @@ export class TimeLoopEngine {
           this.state.status = 'BUSTED';
           this.state.alarmReason = 'Spotted by patrol guard!';
           events.push({ type: 'ALARM', reason: this.state.alarmReason, position: { x: guard.x, y: guard.y } });
+          this.currentLoopEvents.push({ tick: this.currentTick, type: 'ALARM', label: 'Guard Line-of-Sight' });
+          this.state.loopTimelineEvents = [...this.pastLoopEvents.map(e => [...e]), [...this.currentLoopEvents]];
           return events;
         }
       }
@@ -241,6 +254,7 @@ export class TimeLoopEngine {
           this.state.loot.isCollected = true;
           this.state.activePlayer.hasLoot = true;
           events.push({ type: 'LOOT_TAKEN', position: { x: this.state.loot.x, y: this.state.loot.y } });
+          this.currentLoopEvents.push({ tick: this.currentTick, type: 'LOOT', label: this.state.loot.name });
         }
       }
     }
@@ -253,6 +267,7 @@ export class TimeLoopEngine {
         this.state.status = 'WON';
         this.state.levelCompleted = true;
         events.push({ type: 'WIN' });
+        this.state.loopTimelineEvents = [...this.pastLoopEvents.map(e => [...e]), [...this.currentLoopEvents]];
         return events;
       }
     }
@@ -260,14 +275,18 @@ export class TimeLoopEngine {
     // 11. Advance Tick
     this.currentTick++;
     this.state.currentTick = this.currentTick;
+    this.state.loopTimelineEvents = [...this.pastLoopEvents.map(e => [...e]), [...this.currentLoopEvents]];
     if (this.currentTick >= this.level.maxTicks) {
       this.state.status = 'OUT_OF_TIME';
       this.state.alarmReason = 'Time window expired!';
       events.push({ type: 'ALARM', reason: this.state.alarmReason });
+      this.currentLoopEvents.push({ tick: this.currentTick, type: 'ALARM', label: 'Time Expired' });
+      this.state.loopTimelineEvents = [...this.pastLoopEvents.map(e => [...e]), [...this.currentLoopEvents]];
     }
 
     return events;
   }
+
 
   private moveActor(actor: PlayerState, input: PlayerInput): void {
     if (input.dx === 0 && input.dy === 0) return;
@@ -409,9 +428,11 @@ export class TimeLoopEngine {
       return false;
     }
 
-    // Save current recording
+    // Save current recording and event timeline
     this.loopRecordings[this.currentLoopIndex] = [...this.currentLoopInputs];
+    this.pastLoopEvents[this.currentLoopIndex] = [...this.currentLoopEvents];
     this.currentLoopInputs = [];
+    this.currentLoopEvents = [];
     this.currentLoopIndex++;
     this.currentTick = 0;
     this.state = this.initInitialState();
@@ -420,6 +441,7 @@ export class TimeLoopEngine {
 
   public resetCurrentLoop(): void {
     this.currentLoopInputs = [];
+    this.currentLoopEvents = [];
     this.currentTick = 0;
     this.state = this.initInitialState();
   }
@@ -428,7 +450,10 @@ export class TimeLoopEngine {
     this.currentLoopIndex = 0;
     this.loopRecordings = [];
     this.currentLoopInputs = [];
+    this.pastLoopEvents = [];
+    this.currentLoopEvents = [];
     this.currentTick = 0;
     this.state = this.initInitialState();
   }
 }
+

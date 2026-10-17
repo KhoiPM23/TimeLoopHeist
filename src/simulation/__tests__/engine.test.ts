@@ -167,4 +167,45 @@ describe('TimeLoopHeist Multi-Stage Deterministic Engine', () => {
     expect(engine.getState().ghostPlayers[0].x).toBe(finalPosX);
     expect(engine.getState().ghostPlayers[0].y).toBe(finalPosY);
   });
+
+  it('should initialize and run Stage 3 The Obsidian Vault with full multi-loop support', () => {
+    const engine = new TimeLoopEngine(3);
+    const level = engine.getLevel();
+    const state = engine.getState();
+
+    expect(level.id).toBe('stage-3');
+    expect(level.stageNumber).toBe(3);
+    expect(level.maxLoops).toBe(4);
+    expect(level.loot.name).toBe('SINGULARITY RELIC');
+    expect(level.guards.length).toBe(2);
+    expect(level.switches.length).toBe(3);
+    expect(level.doors.length).toBe(2);
+    expect(level.lasers.length).toBe(1);
+
+    // Initial timeline events should be initialized with empty current loop
+    expect(state.loopTimelineEvents.length).toBe(1);
+    expect(state.loopTimelineEvents[0].length).toBe(0);
+  });
+
+  it('should accurately log loop timeline events during player actions', () => {
+    const engine = new TimeLoopEngine(0);
+
+    // Walk to switch at (350, 120)
+    for (let i = 0; i < 78; i++) engine.step({ dx: 1, dy: 0, interact: false });
+
+    for (let i = 0; i < 56; i++) engine.step({ dx: 0, dy: -1, interact: false });
+
+    const stateLoop1 = engine.getState();
+    const events = stateLoop1.loopTimelineEvents[0];
+    expect(events.some(e => e.type === 'SWITCH')).toBe(true);
+    expect(events.some(e => e.type === 'DOOR')).toBe(true);
+
+    // Rewind to loop 2
+    engine.rewindToNextLoop();
+    const stateLoop2 = engine.getState();
+    // Loop 1 events preserved in past events, and Loop 2 events started
+    expect(stateLoop2.loopTimelineEvents.length).toBe(2);
+    expect(stateLoop2.loopTimelineEvents[0].some(e => e.type === 'SWITCH')).toBe(true);
+  });
 });
+

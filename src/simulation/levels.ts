@@ -315,5 +315,150 @@ export const ALL_LEVELS: LevelConfig[] = [
       radius: 18,
       isCollected: false
     }
+  },
+
+  // STAGE 3: THE OBSIDIAN VAULT (Climax Master Heist)
+  {
+    id: 'stage-3',
+    stageNumber: 3,
+    name: 'STAGE 3: THE OBSIDIAN VAULT',
+    subtitle: 'The high-security subterranean sanctum. Zero margin for temporal desynchronization.',
+    objectiveText: 'Coordinate 3 clones across dual-layer security: bypass perimeter lasers, sync with the central sentry, and extract the Singularity Relic.',
+    maxTicks: 1250, // 25s at 50Hz
+    maxLoops: 4,
+    spawn: { x: 80, y: 300 },
+    extraction: { x: 30, y: 240, width: 90, height: 120 },
+    walls: [
+      // Outer boundaries
+      { x: 0, y: 0, width: 900, height: 20 },
+      { x: 0, y: 580, width: 900, height: 20 },
+      { x: 0, y: 0, width: 20, height: 600 },
+      { x: 880, y: 0, width: 20, height: 600 },
+
+      // Perimeter security gate
+      { x: 190, y: 20, width: 20, height: 200 },
+      { x: 190, y: 380, width: 20, height: 200 },
+
+      // North generator room
+      { x: 190, y: 200, width: 220, height: 20 },
+      { x: 390, y: 20, width: 20, height: 200 },
+
+      // South substation room
+      { x: 190, y: 380, width: 220, height: 20 },
+      { x: 390, y: 380, width: 20, height: 200 },
+
+      // Inner chamber partition
+      { x: 580, y: 80, width: 20, height: 160 },
+      { x: 580, y: 360, width: 20, height: 160 },
+
+      // Vault Core
+      { x: 700, y: 160, width: 20, height: 100 },
+      { x: 700, y: 340, width: 20, height: 100 },
+      { x: 700, y: 160, width: 170, height: 20 },
+      { x: 700, y: 420, width: 170, height: 20 }
+    ],
+    guards: [
+      {
+        id: 'guard-obsidian-north',
+        x: 480,
+        y: 100,
+        facingAngle: Math.PI / 2,
+        speed: 2.2,
+        waypoints: [
+          { x: 480, y: 80 },
+          { x: 480, y: 500 }
+        ],
+        currentWaypointIdx: 0,
+        fov: Math.PI / 3,
+        viewDistance: 175,
+        isAlerted: false
+      },
+      {
+        id: 'guard-obsidian-vault',
+        x: 640,
+        y: 490,
+        facingAngle: -Math.PI / 2,
+        speed: 2.4,
+        waypoints: [
+          { x: 640, y: 490 },
+          { x: 640, y: 110 }
+        ],
+        currentWaypointIdx: 0,
+        fov: Math.PI / 3,
+        viewDistance: 165,
+        isAlerted: false
+      }
+    ],
+    switches: [
+      {
+        id: 'sw-obs-laser',
+        x: 290,
+        y: 100,
+        radius: 20,
+        isPressed: false,
+        color: '#00e5ff',
+        label: 'PERIMETER LASER [A]'
+      },
+      {
+        id: 'sw-obs-substation',
+        x: 290,
+        y: 490,
+        radius: 20,
+        isPressed: false,
+        color: '#ff00ea',
+        label: 'CORE LASER [B]'
+      },
+      {
+        id: 'sw-obs-vault',
+        x: 640,
+        y: 300,
+        radius: 22,
+        isPressed: false,
+        color: '#ffea00',
+        label: 'OBSIDIAN DOOR [C]'
+      }
+    ],
+    doors: [
+      {
+        id: 'door-obsidian-perimeter',
+        x: 190,
+        y: 220,
+        width: 20,
+        height: 160,
+        isOpen: false,
+        openProgress: 0,
+        requiredSwitches: ['sw-obs-laser']
+      },
+      {
+        id: 'door-obsidian-vault',
+        x: 700,
+        y: 260,
+        width: 20,
+        height: 80,
+        isOpen: false,
+        openProgress: 0,
+        requiredSwitches: ['sw-obs-vault']
+      }
+    ],
+    lasers: [
+      {
+        id: 'laser-obs-corridor',
+        x1: 410,
+        y1: 290,
+        x2: 560,
+        y2: 290,
+        isActive: true,
+        controlledBySwitch: 'sw-obs-substation'
+      }
+    ],
+    loot: {
+      id: 'loot-obsidian-core',
+      name: 'SINGULARITY RELIC',
+      x: 790,
+      y: 295,
+      radius: 20,
+      isCollected: false
+    }
   }
 ];
+
