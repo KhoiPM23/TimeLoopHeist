@@ -208,6 +208,9 @@ function updateHUD(): void {
   if (state.activePlayer.hasLoot) {
     objStatus.textContent = 'LOOT RETRIEVED! HEAD TO EXTRACTION ZONE!';
     objStatus.style.color = '#00ffaa';
+  } else if (state.activeHint) {
+    objStatus.textContent = state.activeHint;
+    objStatus.style.color = '#38bdf8';
   } else {
     objStatus.textContent = level.objectiveText;
     objStatus.style.color = '#38bdf8';
