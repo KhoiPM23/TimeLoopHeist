@@ -62,7 +62,24 @@ window.addEventListener('keydown', (e) => {
     handleResetStage();
     return;
   }
+  // Quick stage jump [0]..[4]
+  if (e.key >= '0' && e.key <= '4') {
+    const stageIdx = parseInt(e.key, 10);
+    e.preventDefault();
+    loadStage(stageIdx);
+    return;
+  }
 });
+
+function loadStage(stageIdx: number): void {
+  engine.loadLevel(stageIdx);
+  modalTitle.classList.add('hidden');
+  modalStageClear.classList.add('hidden');
+  modalGrandClear.classList.add('hidden');
+  modalBusted.classList.add('hidden');
+  isGameActive = true;
+  updateHUD();
+}
 
 window.addEventListener('keyup', (e) => {
   keys[e.key.toLowerCase()] = false;
@@ -133,10 +150,7 @@ btnMenu.addEventListener('click', () => {
 document.querySelectorAll('.btn-stage').forEach((btn) => {
   btn.addEventListener('click', () => {
     const stageIdx = parseInt(btn.getAttribute('data-stage') || '0', 10);
-    engine.loadLevel(stageIdx);
-    modalTitle.classList.add('hidden');
-    isGameActive = true;
-    updateHUD();
+    loadStage(stageIdx);
   });
 });
 
