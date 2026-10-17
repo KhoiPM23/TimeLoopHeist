@@ -69,9 +69,10 @@ Build production bundle:
 npm run build
 ```
 
-Run local dev server:
+Run local dev server (Dedicated port `7001` — no port collision):
 ```bash
 npm run dev
+# Open http://localhost:7001
 ```
 
 ---
