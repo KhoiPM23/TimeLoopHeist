@@ -206,4 +206,126 @@ export class VaultTextures {
     this.extractionTexture = new THREE.CanvasTexture(canvas);
     return this.extractionTexture;
   }
+
+  private static terminalActiveTexture: THREE.CanvasTexture | null = null;
+  private static terminalHackedTexture: THREE.CanvasTexture | null = null;
+  private static serverRackTexture: THREE.CanvasTexture | null = null;
+
+  public static getTerminalScreenTexture(isHacked: boolean): THREE.CanvasTexture {
+    if (isHacked && this.terminalHackedTexture) return this.terminalHackedTexture;
+    if (!isHacked && this.terminalActiveTexture) return this.terminalActiveTexture;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    // Screen CRT glass
+    ctx.fillStyle = isHacked ? '#061612' : '#05111e';
+    ctx.fillRect(0, 0, 256, 256);
+
+    // CRT Scanlines
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    for (let y = 0; y < 256; y += 4) {
+      ctx.fillRect(0, y, 256, 2);
+    }
+
+    // Terminal header border
+    ctx.strokeStyle = isHacked ? '#00ffaa' : '#00e5ff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(8, 8, 240, 240);
+
+    // Header banner
+    ctx.fillStyle = isHacked ? 'rgba(0, 255, 170, 0.2)' : 'rgba(0, 229, 255, 0.2)';
+    ctx.fillRect(10, 10, 236, 36);
+
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = isHacked ? '#00ffaa' : '#00e5ff';
+    ctx.fillText(isHacked ? '● TERMINAL: DECRYPTED' : '▲ SECURE DATA NODE', 20, 32);
+
+    // Terminal text content
+    ctx.font = '10px monospace';
+    ctx.fillStyle = isHacked ? '#86efac' : '#93c5fd';
+    if (isHacked) {
+      ctx.fillText('STATUS: INTEL ARCHIVED', 20, 70);
+      ctx.fillText('CLASSIFICATION: EYES ONLY', 20, 90);
+      ctx.fillText('PAYLOAD: MEMO / DISK DUMP', 20, 110);
+      ctx.fillText('NETWORK: 0x0 SYNCED [OK]', 20, 130);
+      ctx.fillText('HASH: 8F2A-E41B-902C', 20, 160);
+      ctx.fillStyle = '#00ffaa';
+      ctx.fillText('>> DOSSIER UPDATED <<', 20, 200);
+      ctx.fillRect(20, 215, 80, 4);
+    } else {
+      ctx.fillText('STATUS: LOCKED [CHRONO]', 20, 70);
+      ctx.fillText('RESTRICTED PROTOCOL', 20, 90);
+      ctx.fillText('MEM: 0x7F4A: 9C E1 04 22', 20, 110);
+      ctx.fillText('MEM: 0x7F50: B4 00 F8 11', 20, 130);
+      ctx.fillText('MEM: 0x7F56: 4C CA 89 FF', 20, 150);
+      ctx.fillStyle = '#facc15';
+      ctx.fillText('> TOUCH / INTERACT TO HACK', 20, 195);
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillText('> [E] DECRYPT MEMORY', 20, 220);
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    if (isHacked) {
+      this.terminalHackedTexture = tex;
+    } else {
+      this.terminalActiveTexture = tex;
+    }
+    return tex;
+  }
+
+  public static getServerRackTexture(): THREE.CanvasTexture {
+    if (this.serverRackTexture) return this.serverRackTexture;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    // Server rack chassis
+    ctx.fillStyle = '#0b1320';
+    ctx.fillRect(0, 0, 256, 512);
+
+    // Frame bezel
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, 16, 512);
+    ctx.fillRect(240, 0, 16, 512);
+    ctx.fillRect(0, 0, 256, 16);
+    ctx.fillRect(0, 496, 256, 16);
+
+    // Server units (1U / 2U slots)
+    const unitH = 40;
+    for (let y = 20; y < 490; y += unitH) {
+      // Slot background
+      ctx.fillStyle = '#111c2e';
+      ctx.fillRect(20, y, 216, unitH - 6);
+
+      // Ventilation perforation
+      ctx.fillStyle = '#080d16';
+      for (let px = 28; px < 160; px += 8) {
+        ctx.fillRect(px, y + 6, 4, unitH - 18);
+      }
+
+      // Hard drive bay latches
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(170, y + 6, 20, unitH - 18);
+      ctx.fillRect(195, y + 6, 20, unitH - 18);
+
+      // Blinking status LEDs
+      ctx.fillStyle = Math.random() > 0.3 ? '#00ffaa' : '#00e5ff';
+      ctx.beginPath();
+      ctx.arc(224, y + 12, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = Math.random() > 0.7 ? '#f59e0b' : '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(224, y + 24, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    this.serverRackTexture = new THREE.CanvasTexture(canvas);
+    return this.serverRackTexture;
+  }
 }

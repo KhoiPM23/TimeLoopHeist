@@ -83,11 +83,34 @@ export interface TutorialHint {
   text: string;
 }
 
+export interface TerminalState {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  title: string;
+  classification: string;
+  author: string;
+  date: string;
+  loreSnippet: string;
+  isHacked: boolean;
+}
+
+export interface HandlerCommMessage {
+  trigger: 'START' | 'REWIND' | 'ALARM' | 'LOOT' | 'EXTRACT' | 'HACK';
+  sender: string;
+  callsign: string;
+  text: string;
+}
+
 export interface LevelConfig {
   id: string;
   stageNumber: number;
   name: string;
   subtitle: string;
+  facilityName?: string;
+  sectorLore?: string;
+  threatLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   objectiveText: string;
   maxTicks: number; // e.g. 700 ticks = 14s at 50Hz
   maxLoops: number; // e.g. 2, 3, or 4
@@ -99,12 +122,14 @@ export interface LevelConfig {
   doors: DoorState[];
   lasers: LaserState[];
   loot: LootState;
+  terminals?: TerminalState[];
+  handlerComms?: HandlerCommMessage[];
   hints?: TutorialHint[];
 }
 
 export interface LoopTimelineEvent {
   tick: number;
-  type: 'SWITCH' | 'DOOR' | 'LOOT' | 'ALARM';
+  type: 'SWITCH' | 'DOOR' | 'LOOT' | 'ALARM' | 'HACK';
   label: string;
 }
 
@@ -123,17 +148,21 @@ export interface GameState {
   doors: DoorState[];
   lasers: LaserState[];
   loot: LootState;
+  terminals: TerminalState[];
+  hackedTerminalIds: string[];
   alarmTriggered: boolean;
   alarmReason?: string;
   levelCompleted: boolean;
   activeHint?: string;
+  activeComm?: { sender: string; callsign: string; text: string; timer: number };
   isStandby?: boolean;
   loopTimelineEvents: LoopTimelineEvent[][];
 }
 
 export interface SimEvent {
-  type: 'ALARM' | 'LOOT_TAKEN' | 'SWITCH_DOWN' | 'SWITCH_UP' | 'DOOR_OPEN' | 'DOOR_CLOSE' | 'WIN' | 'DEATH' | 'REWIND';
+  type: 'ALARM' | 'LOOT_TAKEN' | 'SWITCH_DOWN' | 'SWITCH_UP' | 'DOOR_OPEN' | 'DOOR_CLOSE' | 'WIN' | 'DEATH' | 'REWIND' | 'TERMINAL_HACKED';
   reason?: string;
   position?: Vector2D;
+  terminalId?: string;
 }
 

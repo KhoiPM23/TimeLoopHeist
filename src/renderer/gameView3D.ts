@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DoorState, GameState, GuardState, LaserState, LevelConfig, LootState, PlayerState, SimEvent, SwitchState } from '../simulation/types';
+import { DoorState, GameState, GuardState, LaserState, LevelConfig, LootState, PlayerState, SimEvent, SwitchState, TerminalState } from '../simulation/types';
 import { VaultTextures } from './textures';
 
 interface Particle3D {
@@ -38,6 +38,7 @@ export class GameRenderer3D {
   private doorMeshes = new Map<string, THREE.Group>();
   private laserMeshes = new Map<string, THREE.Group>();
   private lootMeshes = new Map<string, THREE.Group>();
+  private terminalMeshes = new Map<string, THREE.Group>();
   private extractionMesh: THREE.Mesh | null = null;
 
   // Characters
@@ -223,6 +224,8 @@ export class GameRenderer3D {
         this.addParticle(ev.position.x, ev.position.y, '#f59e0b', 16, 1.5);
       } else if (ev.type === 'DOOR_OPEN' && ev.position) {
         this.addParticle(ev.position.x, ev.position.y, '#00e5ff', 12, 1.0);
+      } else if (ev.type === 'TERMINAL_HACKED' && ev.position) {
+        this.addParticle(ev.position.x, ev.position.y, '#00ffaa', 24, 2.0);
       }
     }
 
@@ -240,6 +243,9 @@ export class GameRenderer3D {
 
     // 5. Sync Loot Data Cores
     this.syncLoot(state.loot);
+
+    // 5b. Sync Hackable Terminals (Data Nodes)
+    this.syncTerminals(state.terminals || []);
 
     // 6. Sync Player Operative
     this.syncPlayer(state.activePlayer);
@@ -285,6 +291,12 @@ export class GameRenderer3D {
       w.geometry.dispose();
     }
     this.wallMeshes = [];
+
+    // Clear old terminal meshes
+    for (const [_, grp] of this.terminalMeshes) {
+      this.scene.remove(grp);
+    }
+    this.terminalMeshes.clear();
 
     // 1. Floor Plane (512x512 tiled)
     const floorTex = VaultTextures.getFloorTexture();
@@ -504,6 +516,104 @@ export class GameRenderer3D {
     group.rotation.y += 0.03;
 
     group.visible = !loot.isCollected;
+  }
+
+  private syncTerminals(terminals: TerminalState[]): void {
+    for (const term of terminals) {
+      let group = this.terminalMeshes.get(term.id);
+      if (!group) {
+        group = new THREE.Group();
+
+        // 1. Desk Console Pedestal
+        const deskGeo = new THREE.BoxGeometry(22, 14, 14);
+        const deskMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.5,
+          metalness: 0.7
+        });
+        const deskMesh = new THREE.Mesh(deskGeo, deskMat);
+        deskMesh.position.set(0, 0, 7);
+        deskMesh.castShadow = true;
+        group.add(deskMesh);
+
+        // 2. CRT Screen Housing angled toward operative
+        const screenBoxGeo = new THREE.BoxGeometry(18, 5, 12);
+        screenBoxGeo.rotateX(Math.PI / 8);
+        const screenBoxMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
+        const screenBox = new THREE.Mesh(screenBoxGeo, screenBoxMat);
+        screenBox.position.set(0, 2, 18);
+        group.add(screenBox);
+
+        // 3. CRT Screen Display Face (Procedural texture)
+        const screenFaceGeo = new THREE.PlaneGeometry(15, 10);
+        screenFaceGeo.rotateX(Math.PI / 2 + Math.PI / 8);
+        const screenFaceMat = new THREE.MeshBasicMaterial({
+          map: VaultTextures.getTerminalScreenTexture(term.isHacked)
+        });
+        const screenFace = new THREE.Mesh(screenFaceGeo, screenFaceMat);
+        screenFace.name = 'screenFace';
+        screenFace.position.set(0, 4.8, 18.5);
+        group.add(screenFace);
+
+        // 4. Ground Holographic Intercept Ring
+        const ringGeo = new THREE.RingGeometry(term.radius * 0.85, term.radius * 1.1, 24);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: term.isHacked ? 0x00ffaa : 0x00e5ff,
+          transparent: true,
+          opacity: 0.6,
+          side: THREE.DoubleSide
+        });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.name = 'ringMesh';
+        ringMesh.position.set(0, 0, 0.6);
+        group.add(ringMesh);
+
+        // 5. Overhead Vertical Data Beacon Column
+        const beamGeo = new THREE.CylinderGeometry(0.8, 1.8, 28, 8);
+        beamGeo.rotateX(Math.PI / 2);
+        const beamMat = new THREE.MeshBasicMaterial({
+          color: term.isHacked ? 0x00ffaa : 0x00e5ff,
+          transparent: true,
+          opacity: 0.35
+        });
+        const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+        beamMesh.name = 'beaconBeam';
+        beamMesh.position.set(0, 0, 32);
+        group.add(beamMesh);
+
+        this.terminalMeshes.set(term.id, group);
+        this.scene.add(group);
+      }
+
+      group.position.set(term.x, -term.y, 0);
+
+      // Pulse effects
+      const screenFace = group.getObjectByName('screenFace') as THREE.Mesh;
+      const ringMesh = group.getObjectByName('ringMesh') as THREE.Mesh;
+      const beamMesh = group.getObjectByName('beaconBeam') as THREE.Mesh;
+
+      if (screenFace) {
+        const expectedTex = VaultTextures.getTerminalScreenTexture(term.isHacked);
+        const curMat = screenFace.material as THREE.MeshBasicMaterial;
+        if (curMat.map !== expectedTex) {
+          curMat.map = expectedTex;
+          curMat.needsUpdate = true;
+        }
+      }
+
+      if (ringMesh) {
+        const ringMat = ringMesh.material as THREE.MeshBasicMaterial;
+        ringMat.color.setHex(term.isHacked ? 0x00ffaa : 0x00e5ff);
+        ringMat.opacity = 0.45 + Math.sin(this.animTime * 4) * 0.25;
+        ringMesh.rotation.z += 0.015;
+      }
+
+      if (beamMesh) {
+        const beamMat = beamMesh.material as THREE.MeshBasicMaterial;
+        beamMat.color.setHex(term.isHacked ? 0x00ffaa : 0x00e5ff);
+        beamMat.opacity = 0.25 + Math.sin(this.animTime * 3) * 0.15;
+      }
+    }
   }
 
   private syncPlayer(player: PlayerState): void {

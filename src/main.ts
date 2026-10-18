@@ -1,7 +1,8 @@
 import { soundFX } from './audio/soundFX';
 import { GameRenderer3D } from './renderer/gameView3D';
 import { TimeLoopEngine } from './simulation/engine';
-import { PlayerInput, SimEvent } from './simulation/types';
+import { ALL_LEVELS } from './simulation/levels';
+import { PlayerInput, SimEvent, TerminalState } from './simulation/types';
 
 // DOM Elements
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -19,6 +20,7 @@ const btnReset = document.getElementById('btnReset') as HTMLButtonElement;
 const btnMute = document.getElementById('btnMute') as HTMLButtonElement;
 const muteLabel = document.getElementById('muteLabel') as HTMLElement;
 const btnMenu = document.getElementById('btnMenu') as HTMLButtonElement;
+const btnDossier = document.getElementById('btnDossier') as HTMLButtonElement;
 
 // Screens & Modals
 const modalTitle = document.getElementById('modalTitle') as HTMLElement;
@@ -34,6 +36,22 @@ const bustedReason = document.getElementById('bustedReason') as HTMLElement;
 const btnRetryLoop = document.getElementById('btnRetryLoop') as HTMLButtonElement;
 const btnRestartStage = document.getElementById('btnRestartStage') as HTMLButtonElement;
 
+// Classified Intel Dossier Modal & Elements
+const modalIntelDossier = document.getElementById('modalIntelDossier') as HTMLElement;
+const btnCloseDossier = document.getElementById('btnCloseDossier') as HTMLButtonElement;
+const dossierList = document.getElementById('dossierList') as HTMLElement;
+const dossierDetailTitle = document.getElementById('dossierDetailTitle') as HTMLElement;
+const dossierDetailClassification = document.getElementById('dossierDetailClassification') as HTMLElement;
+const dossierDetailDate = document.getElementById('dossierDetailDate') as HTMLElement;
+const dossierDetailAuthor = document.getElementById('dossierDetailAuthor') as HTMLElement;
+const dossierDetailBody = document.getElementById('dossierDetailBody') as HTMLElement;
+
+// Tactical Radio Comms Card Elements
+const thorneCommBox = document.getElementById('thorneCommBox') as HTMLElement;
+const commSender = document.getElementById('commSender') as HTMLElement;
+const commCallsign = document.getElementById('commCallsign') as HTMLElement;
+const commText = document.getElementById('commText') as HTMLElement;
+
 // Engine & Systems
 const engine = new TimeLoopEngine(0); // Start at Stage 0 (Tutorial)
 const renderer = new GameRenderer3D(canvas);
@@ -42,10 +60,21 @@ const renderer = new GameRenderer3D(canvas);
 const keys: Record<string, boolean> = {};
 let isGameActive = false;
 let isStandby = true;
+let selectedTerminalId = 'term-0-1';
+let commTimer: ReturnType<typeof setTimeout> | null = null;
 
 window.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   soundFX.ensureAudioActive();
+
+  // If dossier modal is open, allow closing with Escape or I
+  if (!modalIntelDossier.classList.contains('hidden')) {
+    if (e.key === 'Escape' || e.key === 'i' || e.key === 'I') {
+      e.preventDefault();
+      toggleDossierModal();
+      return;
+    }
+  }
 
   // If busted modal is visible, allow instant keyboard recovery
   if (!modalBusted.classList.contains('hidden')) {
@@ -63,6 +92,11 @@ window.addEventListener('keydown', (e) => {
 
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
     handleTogglePause();
+    return;
+  }
+  if (e.key === 'i' || e.key === 'I') {
+    e.preventDefault();
+    toggleDossierModal();
     return;
   }
   if (e.key === 'm' || e.key === 'M') {
@@ -95,16 +129,111 @@ function restoreFocus(): void {
   }
 }
 
+function triggerThorneComm(trigger: 'START' | 'REWIND' | 'ALARM' | 'LOOT' | 'EXTRACT' | 'HACK'): void {
+  const level = engine.getLevel();
+  if (!level.handlerComms) return;
+  const comm = level.handlerComms.find(c => c.trigger === trigger);
+  if (!comm) return;
+
+  commSender.textContent = comm.sender.toUpperCase();
+  commCallsign.textContent = `// ${comm.callsign}`;
+  commText.textContent = comm.text;
+
+  thorneCommBox.classList.remove('comm-hidden');
+  soundFX.playRadioChirp();
+
+  if (commTimer) clearTimeout(commTimer);
+  commTimer = setTimeout(() => {
+    thorneCommBox.classList.add('comm-hidden');
+  }, 6500);
+}
+
+function toggleDossierModal(): void {
+  const isHidden = modalIntelDossier.classList.contains('hidden');
+  if (isHidden) {
+    updateDossierModal();
+    modalIntelDossier.classList.remove('hidden');
+    soundFX.playRadioChirp();
+  } else {
+    modalIntelDossier.classList.add('hidden');
+    restoreFocus();
+  }
+}
+
+function updateDossierModal(): void {
+  dossierList.innerHTML = '';
+  const unlockedIds = new Set(engine.getUnlockedTerminalIds());
+  let hasRenderedDetail = false;
+
+  ALL_LEVELS.forEach(lvl => {
+    if (!lvl.terminals || lvl.terminals.length === 0) return;
+
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size: 9px; color: #00e5ff; font-weight: 700; margin-top: 8px; letter-spacing: 1px;';
+    hdr.textContent = `STAGE ${lvl.stageNumber}: ${lvl.facilityName || lvl.name}`;
+    dossierList.appendChild(hdr);
+
+    lvl.terminals.forEach(term => {
+      const isUnlocked = unlockedIds.has(term.id);
+      const isSelected = term.id === selectedTerminalId;
+
+      const item = document.createElement('div');
+      item.className = `dossier-item ${isUnlocked ? '' : 'locked'} ${isSelected ? 'active' : ''}`;
+      item.innerHTML = `
+        <div style="font-weight: 600; color: ${isUnlocked ? '#00e5ff' : '#64748b'}; font-size: 10px;">
+          ${isUnlocked ? '● [DECRYPTED]' : '○ [LOCKED]'} ${isUnlocked ? term.title : 'CLASSIFIED LOG'}
+        </div>
+        <div style="font-size: 8px; color: #475569; margin-top: 2px;">
+          ${isUnlocked ? term.author : 'Touch terminal in stage to decrypt'}
+        </div>
+      `;
+
+      item.addEventListener('click', () => {
+        selectedTerminalId = term.id;
+        renderDossierDetail(term, isUnlocked);
+        updateDossierModal();
+      });
+
+      dossierList.appendChild(item);
+
+      if (isSelected || !hasRenderedDetail) {
+        renderDossierDetail(term, isUnlocked);
+        hasRenderedDetail = true;
+      }
+    });
+  });
+}
+
+function renderDossierDetail(term: TerminalState, isUnlocked: boolean): void {
+  if (isUnlocked) {
+    dossierDetailClassification.textContent = term.classification;
+    dossierDetailClassification.className = 'classification-badge unlocked';
+    dossierDetailDate.textContent = `DATE: ${term.date}`;
+    dossierDetailTitle.textContent = term.title;
+    dossierDetailAuthor.textContent = `AUTHOR: ${term.author}`;
+    dossierDetailBody.textContent = term.loreSnippet;
+  } else {
+    dossierDetailClassification.textContent = 'RESTRICTED // ENCRYPTED';
+    dossierDetailClassification.className = 'classification-badge';
+    dossierDetailDate.textContent = 'DATE: UNKNOWN';
+    dossierDetailTitle.textContent = 'CLASSIFIED ARCHIVE FILE [ENCRYPTED]';
+    dossierDetailAuthor.textContent = 'AUTHOR: REDACTED';
+    dossierDetailBody.textContent = 'This data packet has not yet been decrypted.\n\nTo access this classified intelligence file, locate and infiltrate the computer terminal workstation inside this facility sector during your heist run.';
+  }
+}
+
 function loadStage(stageIdx: number): void {
   engine.loadLevel(stageIdx);
   modalTitle.classList.add('hidden');
   modalStageClear.classList.add('hidden');
   modalGrandClear.classList.add('hidden');
   modalBusted.classList.add('hidden');
+  modalIntelDossier.classList.add('hidden');
   isGameActive = true;
   isStandby = true;
   soundFX.startStealthAtmosphere();
   updateHUD();
+  triggerThorneComm('START');
   restoreFocus();
 }
 
@@ -165,6 +294,7 @@ function handleRewind(): void {
   isStandby = true;
   soundFX.startStealthAtmosphere();
   updateHUD();
+  triggerThorneComm('REWIND');
   restoreFocus();
 }
 
@@ -177,6 +307,7 @@ function handleResetStage(): void {
   isStandby = true;
   soundFX.startStealthAtmosphere();
   updateHUD();
+  triggerThorneComm('START');
   restoreFocus();
 }
 
@@ -188,12 +319,16 @@ btnStartGame.addEventListener('click', () => {
   soundFX.ensureAudioActive();
   soundFX.startStealthAtmosphere();
   updateHUD();
+  triggerThorneComm('START');
   restoreFocus();
 });
 
 btnMenu.addEventListener('click', () => {
   modalTitle.classList.remove('hidden');
 });
+
+btnDossier.addEventListener('click', toggleDossierModal);
+btnCloseDossier.addEventListener('click', toggleDossierModal);
 
 document.querySelectorAll('.btn-stage').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -228,6 +363,7 @@ btnNextStage.addEventListener('click', () => {
     isStandby = true;
     soundFX.startStealthAtmosphere();
     updateHUD();
+    triggerThorneComm('START');
     restoreFocus();
   } else {
     modalGrandClear.classList.remove('hidden');
@@ -240,6 +376,7 @@ btnReplayAll.addEventListener('click', () => {
   isStandby = true;
   soundFX.startStealthAtmosphere();
   updateHUD();
+  triggerThorneComm('START');
   restoreFocus();
 });
 
@@ -309,14 +446,20 @@ function processSimEvents(events: SimEvent[]): void {
       soundFX.playDoor(false);
     } else if (ev.type === 'LOOT_TAKEN') {
       soundFX.playLootTaken();
+      triggerThorneComm('LOOT');
+    } else if (ev.type === 'TERMINAL_HACKED') {
+      soundFX.playHackSuccess();
+      triggerThorneComm('HACK');
     } else if (ev.type === 'ALARM') {
       soundFX.playAlarm();
       soundFX.stopStealthAtmosphere();
       bustedReason.textContent = ev.reason || 'Security perimeter breached!';
       modalBusted.classList.remove('hidden');
+      triggerThorneComm('ALARM');
     } else if (ev.type === 'WIN') {
       soundFX.playVictory();
       soundFX.stopStealthAtmosphere();
+      triggerThorneComm('EXTRACT');
       const currentIdx = engine.getLevelIndex();
       const total = engine.getTotalLevels();
 

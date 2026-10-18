@@ -7,6 +7,7 @@ import {
   PlayerInput,
   PlayerState,
   SimEvent,
+  TerminalState,
   Wall
 } from './types';
 
@@ -22,6 +23,7 @@ export class TimeLoopEngine {
   private currentTick: number = 0;
   private state: GameState;
   private playerSpeed: number = 3.2;
+  private unlockedTerminalIds: Set<string> = new Set();
 
   constructor(initialLevelIndex = 0) {
     this.levelIndex = Math.max(0, Math.min(ALL_LEVELS.length - 1, initialLevelIndex));
@@ -35,6 +37,10 @@ export class TimeLoopEngine {
 
   public getTotalLevels(): number {
     return ALL_LEVELS.length;
+  }
+
+  public getUnlockedTerminalIds(): string[] {
+    return Array.from(this.unlockedTerminalIds);
   }
 
   public loadLevel(index: number): void {
@@ -83,6 +89,13 @@ export class TimeLoopEngine {
       }
     }
 
+    const terminals: TerminalState[] = JSON.parse(JSON.stringify(this.level.terminals || []));
+    for (const term of terminals) {
+      if (this.unlockedTerminalIds.has(term.id)) {
+        term.isHacked = true;
+      }
+    }
+
     return {
       status: 'RUNNING',
       currentTick: 0,
@@ -96,6 +109,8 @@ export class TimeLoopEngine {
       doors: JSON.parse(JSON.stringify(this.level.doors)),
       lasers: JSON.parse(JSON.stringify(this.level.lasers)),
       loot: JSON.parse(JSON.stringify(this.level.loot)),
+      terminals,
+      hackedTerminalIds: Array.from(this.unlockedTerminalIds),
       alarmTriggered: false,
       levelCompleted: false,
       activeHint: initialHint,
@@ -255,6 +270,28 @@ export class TimeLoopEngine {
           this.state.activePlayer.hasLoot = true;
           events.push({ type: 'LOOT_TAKEN', position: { x: this.state.loot.x, y: this.state.loot.y } });
           this.currentLoopEvents.push({ tick: this.currentTick, type: 'LOOT', label: this.state.loot.name });
+        }
+      }
+    }
+
+    // 9b. Hackable Intel Terminals (Data Nodes)
+    for (const term of this.state.terminals) {
+      if (!term.isHacked) {
+        const distToTerm = Math.hypot(this.state.activePlayer.x - term.x, this.state.activePlayer.y - term.y);
+        if (distToTerm <= this.state.activePlayer.radius + term.radius + 6) {
+          term.isHacked = true;
+          this.unlockedTerminalIds.add(term.id);
+          this.state.hackedTerminalIds = Array.from(this.unlockedTerminalIds);
+          events.push({
+            type: 'TERMINAL_HACKED',
+            terminalId: term.id,
+            position: { x: term.x, y: term.y }
+          });
+          this.currentLoopEvents.push({
+            tick: this.currentTick,
+            type: 'HACK',
+            label: term.title
+          });
         }
       }
     }

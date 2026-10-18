@@ -231,5 +231,42 @@ describe('TimeLoopHeist Multi-Stage Deterministic Engine', () => {
       expect(engine.getState().ghostPlayers.length).toBe(l);
     }
   });
+
+  it('should discover and hack data terminals in Stage 0 and emit TERMINAL_HACKED', () => {
+    const engine = new TimeLoopEngine(0);
+    const initialTerminals = engine.getState().terminals;
+    expect(initialTerminals.length).toBeGreaterThan(0);
+    const term = initialTerminals[0];
+    expect(term.isHacked).toBe(false);
+
+    // Position player directly on terminal
+    (engine as unknown as { state: { activePlayer: { x: number; y: number } } }).state.activePlayer.x = term.x;
+    (engine as unknown as { state: { activePlayer: { x: number; y: number } } }).state.activePlayer.y = term.y;
+
+    const events = engine.step({ dx: 0, dy: 0, interact: false });
+    expect(events.some(e => e.type === 'TERMINAL_HACKED')).toBe(true);
+    expect(term.isHacked).toBe(true);
+    expect(engine.getUnlockedTerminalIds()).toContain(term.id);
+
+    // Rewinding loop preserves unlocked dossier terminal
+    engine.rewindToNextLoop();
+    expect(engine.getState().terminals[0].isHacked).toBe(true);
+  });
+
+  it('should contain rich world building, sector lore, and handler comms across all 5 stages', () => {
+    for (let idx = 0; idx < 5; idx++) {
+      const engine = new TimeLoopEngine(idx);
+      const level = engine.getLevel();
+      expect(level.facilityName).toBeDefined();
+      expect(level.facilityName!.length).toBeGreaterThan(5);
+      expect(level.sectorLore).toBeDefined();
+      expect(level.sectorLore!.length).toBeGreaterThan(20);
+      expect(level.threatLevel).toBeDefined();
+      expect(level.terminals).toBeDefined();
+      expect(level.terminals!.length).toBeGreaterThan(0);
+      expect(level.handlerComms).toBeDefined();
+      expect(level.handlerComms!.some(c => c.trigger === 'START')).toBe(true);
+    }
+  });
 });
 

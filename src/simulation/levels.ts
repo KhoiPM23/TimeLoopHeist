@@ -7,6 +7,9 @@ export const ALL_LEVELS: LevelConfig[] = [
     stageNumber: 0,
     name: 'STAGE 0: TEMPORAL INDUCTION',
     subtitle: 'Learn the basic time echo loop protocol.',
+    facilityName: 'Aethelgard Dynamics — Proving Ground Sub-9',
+    sectorLore: 'Decommissioned subterranean cold war silo converted by Aethelgard R&D into a closed-circuit causality testing facility. Recruits are fitted with the Chrono-Anchor MK-1 to record retro-causal echoes.',
+    threatLevel: 'LOW',
     objectiveText: 'Step on Switch [A] to open the door, press [R] to record, then walk through as your new self!',
     maxTicks: 750, // 15 seconds at 50Hz
     maxLoops: 2,
@@ -60,6 +63,27 @@ export const ALL_LEVELS: LevelConfig[] = [
       radius: 16,
       isCollected: false
     },
+    terminals: [
+      {
+        id: 'term-0-1',
+        x: 350,
+        y: 490,
+        radius: 20,
+        title: 'CHRONO-ANCHOR MK-1 OPERATOR MANUAL',
+        classification: 'CONFIDENTIAL // NET-0x0 INTERNAL',
+        author: 'Handler Thorne, Network 0x0',
+        date: '2089-03-14',
+        loreSnippet: 'The Chrono-Anchor rig maintains your quantum waveform coherence across a 15-second loop window. When you trigger [R], you project your present consciousness back to the spawn anchor while your previous chronological state continues executing its recorded vectors. Beware: your past echoes are physical matter. They can hold doors open, trigger switches, but also trigger alarms if spotted.',
+        isHacked: false
+      }
+    ],
+    handlerComms: [
+      { trigger: 'START', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Cipher, audio check. You are inside Sub-9. Walk north to Switch [A], step on it to lower the blast gate, then press [R] to record your echo.' },
+      { trigger: 'REWIND', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Temporal echo locked! Your past clone is holding Switch [A]. Walk through the gate, secure the keycard, and extract.' },
+      { trigger: 'LOOT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Keycard verified. Get to the blue extraction pad on the west wall.' },
+      { trigger: 'EXTRACT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Clean extraction. The induction trial is complete. Sub-Vault Alpha awaits.' },
+      { trigger: 'HACK', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Data node intercepted. Classified operator manual uploaded to your tactical dossier.' }
+    ],
     hints: [
       {
         trigger: 'START',
@@ -82,6 +106,9 @@ export const ALL_LEVELS: LevelConfig[] = [
     stageNumber: 1,
     name: 'STAGE 1: LASER CORRIDOR BYPASS',
     subtitle: 'Cooperate with 2 recorded past selves to disarm lasers and open the vault.',
+    facilityName: 'Sub-Vault Alpha — High-Flux Laser Perimeter',
+    sectorLore: 'Aethelgard outer transit hub housing automated laser defense emitters. Built directly over geothermal heat sinks to supply uninterrupted power to the containment chambers.',
+    threatLevel: 'MEDIUM',
     objectiveText: 'Loop 1: Hold Switch A (Laser). Loop 2: Hold Switch B (Door). Loop 3: Grab Vault Diamond & escape!',
     maxTicks: 900, // 18 seconds at 50Hz
     maxLoops: 3,
@@ -175,7 +202,27 @@ export const ALL_LEVELS: LevelConfig[] = [
       y: 120,
       radius: 16,
       isCollected: false
-    }
+    },
+    terminals: [
+      {
+        id: 'term-1-1',
+        x: 580,
+        y: 120,
+        radius: 20,
+        title: 'MEMORANDUM: FREQUENCY LASER CALIBRATION',
+        classification: 'RESTRICTED // AETHELGARD SECURITY',
+        author: 'Security Director Sterling',
+        date: '2089-08-22',
+        loreSnippet: 'The high-flux blue lasers operate on a 420nm ionization frequency designed to vaporize intrusion drones within 4 milliseconds. Due to union safety mandates, emergency cutoff switch [A] remains wired in the north alcove. Ensure guards sweep the corridor regularly.',
+        isHacked: false
+      }
+    ],
+    handlerComms: [
+      { trigger: 'START', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Sub-Vault Alpha. Watch that high-flux laser barrier. You will need three loops: one on Switch A, one on Switch B, then grab the Quantum Diamond.' },
+      { trigger: 'ALARM', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Breach detected! Anchor collapsed! Press [R] to retry the loop or [F] to reboot the stage!' },
+      { trigger: 'LOOT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Quantum Diamond retrieved. High purity lattice confirmed. Evacuate through extraction!' },
+      { trigger: 'HACK', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Terminal decrypted: Laser safety logs acquired. Added to your dossier.' }
+    ]
   },
 
   // STAGE 2: THE GRAND HEIST
@@ -184,6 +231,9 @@ export const ALL_LEVELS: LevelConfig[] = [
     stageNumber: 2,
     name: 'STAGE 2: THE QUANTUM SANCTUM',
     subtitle: 'Coordinate 3 clones across intersecting patrol lines and dual laser barriers.',
+    facilityName: 'Automated Defense Hub — Sector Tartarus',
+    sectorLore: 'The automated security perimeter guarded by Mark-IV autonomous sentry units. The facility processes anomalous quantum isotopes synthesized in the lower reactors.',
+    threatLevel: 'HIGH',
     objectiveText: 'Coordinate 3 past echoes: Disable Outer & Inner Lasers, unseal the Sanctum, and extract!',
     maxTicks: 1100, // 22 seconds at 50Hz
     maxLoops: 4,
@@ -314,7 +364,27 @@ export const ALL_LEVELS: LevelConfig[] = [
       y: 295,
       radius: 18,
       isCollected: false
-    }
+    },
+    terminals: [
+      {
+        id: 'term-2-1',
+        x: 750,
+        y: 100,
+        radius: 20,
+        title: 'PATROL DIRECTIVE: MARK-IV SENTRY LOGIC',
+        classification: 'TOP SECRET // AETHELGARD R&D',
+        author: 'Dr. Evelyn Vance, Head of Autonomous Systems',
+        date: '2090-01-19',
+        loreSnippet: 'Mark-IV sentries are programmed with deterministic linear sweep routines. Their 60-degree volumetric cones detect biological motion instantly, but they cannot see through blast doors or reinforced composite bulkheads. If a target moves out of visual range before escalation, the sentry continues its programmed route.',
+        isHacked: false
+      }
+    ],
+    handlerComms: [
+      { trigger: 'START', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Sector Tartarus. Mark-IV sentries are active. Time your movements between their patrol intervals.' },
+      { trigger: 'ALARM', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Sentry locked onto you! Rewind immediately!' },
+      { trigger: 'LOOT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Royal Quantum Core in possession! Evacuate before the secondary patrol converges!' },
+      { trigger: 'HACK', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Sentry patrol logic decrypted. Tactical dossier updated.' }
+    ]
   },
 
   // STAGE 3: THE OBSIDIAN VAULT (Climax Master Heist)
@@ -323,6 +393,9 @@ export const ALL_LEVELS: LevelConfig[] = [
     stageNumber: 3,
     name: 'STAGE 3: THE OBSIDIAN VAULT',
     subtitle: 'The high-security subterranean sanctum. Zero margin for temporal desynchronization.',
+    facilityName: 'The Obsidian Vault — Anomaly Containment',
+    sectorLore: 'A heavily shielded subterranean tomb constructed from reinforced obsidian alloy to contain high-energy temporal distortions. The Singularity Relic held here was retrieved from the first failed causality experiment.',
+    threatLevel: 'CRITICAL',
     objectiveText: 'Coordinate 3 clones across dual-layer security: bypass perimeter lasers, sync with the central sentry, and extract the Singularity Relic.',
     maxTicks: 1250, // 25s at 50Hz
     maxLoops: 4,
@@ -458,7 +531,26 @@ export const ALL_LEVELS: LevelConfig[] = [
       y: 295,
       radius: 20,
       isCollected: false
-    }
+    },
+    terminals: [
+      {
+        id: 'term-3-1',
+        x: 580,
+        y: 300,
+        radius: 20,
+        title: 'INCIDENT REPORT: PROJECT OUROBOROS INITIATION',
+        classification: 'EYES ONLY // EXECUTIVE BOARD',
+        author: 'Director Corvus Graves',
+        date: '2091-05-11',
+        loreSnippet: 'At 03:40, the Prototype Array induced a localized 4-second time loop. Three laboratory technicians observed duplicates of themselves performing actions they had not yet decided to take. When the loop collapsed, the Singularity Relic crystallized at the nexus. We are not just manipulating time; we are fracturing baseline reality.',
+        isHacked: false
+      }
+    ],
+    handlerComms: [
+      { trigger: 'START', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Obsidian Vault. This place holds the evidence of Aethelgard\'s temporal crimes. Four synchronized echoes required. Make every second count.' },
+      { trigger: 'LOOT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Singularity Relic secured! Reality distortion spikes detected! Get to extraction!' },
+      { trigger: 'HACK', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Project Ouroboros initiation report archived. This is the smoking gun.' }
+    ]
   },
 
   // STAGE 4: THE QUANTUM PARADOX VAULT
@@ -467,6 +559,9 @@ export const ALL_LEVELS: LevelConfig[] = [
     stageNumber: 4,
     name: 'STAGE 4: THE QUANTUM PARADOX VAULT',
     subtitle: 'Triple temporal synchronization across security sectors.',
+    facilityName: 'Project Ouroboros Mainframe Core',
+    sectorLore: 'The deepest sanctum of Aethelgard Dynamics. Here lies the Chrono Paradox Relic, the master control engine capable of rewriting corporate and military history across global timelines.',
+    threatLevel: 'CRITICAL',
     objectiveText: 'Loop 1: Hold North Grid A. Loop 2: Hold South Grid B. Loop 3: Override Core Interlock C. Loop 4: Extract Quantum Relic & escape!',
     maxTicks: 1100, // 22 seconds at 50Hz
     maxLoops: 4,
@@ -594,7 +689,27 @@ export const ALL_LEVELS: LevelConfig[] = [
       y: 295,
       radius: 22,
       isCollected: false
-    }
+    },
+    terminals: [
+      {
+        id: 'term-4-1',
+        x: 260,
+        y: 300,
+        radius: 20,
+        title: 'FINAL TRANSMISSION: THE OUROBOROS MANDATE',
+        classification: 'ULTRA // LEVEL 5 SECURITY',
+        author: 'Director Corvus Graves',
+        date: '2092-10-30',
+        loreSnippet: 'To whoever intercepts this: we have crossed the horizon. The Chrono Paradox Core allows infinite revision of any battle, political election, or corporate treaty. If Network 0x0 or their operatives breach this terminal, purge all sub-levels immediately. Causality must remain ours.',
+        isHacked: false
+      }
+    ],
+    handlerComms: [
+      { trigger: 'START', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'The Mainframe Core. Four clones, dual laser grids, and two sentinel units. This is the final run. Rewrite history, Cipher.' },
+      { trigger: 'LOOT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'CHRONO PARADOX RELIC RETRIEVED! The entire facility is destabilizing! RUN TO EXTRACTION!' },
+      { trigger: 'EXTRACT', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'EXTRACTION COMPLETE! Aethelgard\'s temporal monopoly is shattered! The timeline is free! Outstanding work, Cipher.' },
+      { trigger: 'HACK', sender: 'Handler Thorne', callsign: 'NET-0x0', text: 'Ouroboros master mandate intercepted. The ultimate classified dossier is unlocked.' }
+    ]
   }
 ];
 
