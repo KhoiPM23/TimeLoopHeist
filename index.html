@@ -503,6 +503,42 @@
     .hidden {
       display: none !important;
     }
+
+    .standby-prompt {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 20, 36, 0.94);
+      border: 1px solid #00e5ff;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.4);
+      color: #00e5ff;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      padding: 8px 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 25;
+      pointer-events: none;
+      animation: standbyPulse 1.2s ease-in-out infinite alternate;
+    }
+
+    .standby-dot {
+      width: 8px;
+      height: 8px;
+      background: #00e5ff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #00e5ff;
+    }
+
+    @keyframes standbyPulse {
+      0% { opacity: 0.8; transform: translateX(-50%) scale(0.98); }
+      100% { opacity: 1; transform: translateX(-50%) scale(1.02); }
+    }
   </style>
 </head>
 <body>
@@ -556,6 +592,12 @@
       </div>
 
       <canvas id="gameCanvas" width="900" height="600"></canvas>
+
+      <!-- Standby Loop Prompt -->
+      <div id="standbyPrompt" class="standby-prompt">
+        <span class="standby-dot"></span>
+        <span>STANDBY // MOVE [W, A, S, D] OR ARROWS TO INITIATE LOOP</span>
+      </div>
 
       <!-- Tactical Radio Comms Card -->
       <div id="thorneCommBox" class="thorne-comm-card comm-hidden">

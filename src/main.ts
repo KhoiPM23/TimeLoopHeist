@@ -51,6 +51,7 @@ const thorneCommBox = document.getElementById('thorneCommBox') as HTMLElement;
 const commSender = document.getElementById('commSender') as HTMLElement;
 const commCallsign = document.getElementById('commCallsign') as HTMLElement;
 const commText = document.getElementById('commText') as HTMLElement;
+const standbyPrompt = document.getElementById('standbyPrompt') as HTMLElement;
 
 // Engine & Systems
 const engine = new TimeLoopEngine(0); // Start at Stage 0 (Tutorial)
@@ -63,13 +64,38 @@ let isStandby = true;
 let selectedTerminalId = 'term-0-1';
 let commTimer: ReturnType<typeof setTimeout> | null = null;
 
-window.addEventListener('keydown', (e) => {
-  keys[e.key.toLowerCase()] = true;
+function startGame(): void {
+  modalTitle.classList.add('hidden');
+  isGameActive = true;
+  isStandby = true;
   soundFX.ensureAudioActive();
+  soundFX.startStealthAtmosphere();
+  updateHUD();
+  triggerThorneComm('START');
+  restoreFocus();
+}
+
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  soundFX.ensureAudioActive();
+
+  // If title screen is open, Space / Enter / WASD starts game
+  if (!modalTitle.classList.contains('hidden')) {
+    if (e.key === 'Enter' || e.code === 'Space' || ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+      e.preventDefault();
+      startGame();
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+        isStandby = false;
+        updateHUD();
+      }
+      return;
+    }
+  }
 
   // If dossier modal is open, allow closing with Escape or I
   if (!modalIntelDossier.classList.contains('hidden')) {
-    if (e.key === 'Escape' || e.key === 'i' || e.key === 'I') {
+    if (e.key === 'Escape' || k === 'i') {
       e.preventDefault();
       toggleDossierModal();
       return;
@@ -78,36 +104,70 @@ window.addEventListener('keydown', (e) => {
 
   // If busted modal is visible, allow instant keyboard recovery
   if (!modalBusted.classList.contains('hidden')) {
-    if (e.key === 'r' || e.key === 'R' || e.key === ' ') {
+    if (k === 'r' || e.code === 'Space' || e.key === 'Enter') {
       e.preventDefault();
       handleRewind();
       return;
     }
-    if (e.key === 'f' || e.key === 'F') {
+    if (k === 'f') {
       e.preventDefault();
       handleResetStage();
       return;
     }
   }
 
-  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+  // If Stage Clear modal is visible, Space / Enter advances
+  if (!modalStageClear.classList.contains('hidden')) {
+    if (e.key === 'Enter' || e.code === 'Space') {
+      e.preventDefault();
+      modalStageClear.classList.add('hidden');
+      const hasNext = engine.nextLevel();
+      if (hasNext) {
+        isStandby = true;
+        soundFX.startStealthAtmosphere();
+        updateHUD();
+        triggerThorneComm('START');
+        restoreFocus();
+      } else {
+        modalGrandClear.classList.remove('hidden');
+      }
+      return;
+    }
+  }
+
+  // If Grand Clear modal is visible, Space / Enter replays all
+  if (!modalGrandClear.classList.contains('hidden')) {
+    if (e.key === 'Enter' || e.code === 'Space') {
+      e.preventDefault();
+      modalGrandClear.classList.add('hidden');
+      engine.loadLevel(0);
+      isStandby = true;
+      soundFX.startStealthAtmosphere();
+      updateHUD();
+      triggerThorneComm('START');
+      restoreFocus();
+      return;
+    }
+  }
+
+  if (k === 'p' || e.key === 'Escape') {
     handleTogglePause();
     return;
   }
-  if (e.key === 'i' || e.key === 'I') {
+  if (k === 'i') {
     e.preventDefault();
     toggleDossierModal();
     return;
   }
-  if (e.key === 'm' || e.key === 'M') {
+  if (k === 'm') {
     handleToggleMute();
     return;
   }
-  if (e.key === 'r' || e.key === 'R') {
+  if (k === 'r') {
     handleRewind();
     return;
   }
-  if (e.key === 'f' || e.key === 'F') {
+  if (k === 'f') {
     handleResetStage();
     return;
   }
@@ -253,6 +313,7 @@ function pollInput(): PlayerInput {
   const interact = !!(keys[' '] || keys['e']);
   if (isStandby && (dx !== 0 || dy !== 0 || interact)) {
     isStandby = false;
+    updateHUD();
   }
   return { dx, dy, interact };
 }
@@ -312,16 +373,7 @@ function handleResetStage(): void {
 }
 
 // Button listeners
-btnStartGame.addEventListener('click', () => {
-  modalTitle.classList.add('hidden');
-  isGameActive = true;
-  isStandby = true;
-  soundFX.ensureAudioActive();
-  soundFX.startStealthAtmosphere();
-  updateHUD();
-  triggerThorneComm('START');
-  restoreFocus();
-});
+btnStartGame.addEventListener('click', startGame);
 
 btnMenu.addEventListener('click', () => {
   modalTitle.classList.remove('hidden');
@@ -434,6 +486,15 @@ function updateHUD(): void {
     secStatus.textContent = 'CLEAR (STEALTH)';
     secStatus.style.color = '#00ffaa';
   }
+
+  // Standby prompt
+  if (standbyPrompt) {
+    if (isStandby) {
+      standbyPrompt.classList.remove('hidden');
+    } else {
+      standbyPrompt.classList.add('hidden');
+    }
+  }
 }
 
 function processSimEvents(events: SimEvent[]): void {
@@ -487,20 +548,24 @@ function gameLoop(currentTime: number): void {
   const state = engine.getState();
   (state as { isStandby?: boolean }).isStandby = isStandby;
 
-  if (isGameActive && state.status === 'RUNNING' && !isStandby) {
-    accumulator += dt;
-    while (accumulator >= TICK_DURATION_MS) {
-      const input = pollInput();
-      lastEvents = engine.step(input);
-      processSimEvents(lastEvents);
-      accumulator -= TICK_DURATION_MS;
+  if (isGameActive && state.status === 'RUNNING') {
+    // ALWAYS poll input to break standby as soon as a movement key is pressed
+    const liveInput = pollInput();
 
-      // Subtle footstep sound on movement
-      if ((input.dx !== 0 || input.dy !== 0) && engine.getState().currentTick % 12 === 0) {
-        soundFX.playFootstep();
+    if (!isStandby) {
+      accumulator += dt;
+      while (accumulator >= TICK_DURATION_MS) {
+        lastEvents = engine.step(liveInput);
+        processSimEvents(lastEvents);
+        accumulator -= TICK_DURATION_MS;
+
+        // Subtle footstep sound on movement
+        if ((liveInput.dx !== 0 || liveInput.dy !== 0) && engine.getState().currentTick % 12 === 0) {
+          soundFX.playFootstep();
+        }
       }
+      updateHUD();
     }
-    updateHUD();
   }
 
   renderer.render(engine.getState(), engine.getLevel(), lastEvents);
