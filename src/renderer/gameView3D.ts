@@ -175,6 +175,21 @@ export class GameRenderer3D {
     arrowMesh.position.set(0, 16, 2);
     group.add(arrowMesh);
 
+    // Hologram echo floor disc for past time-loop clones
+    if (isHologram) {
+      const echoRingGeo = new THREE.RingGeometry(11, 13, 24);
+      const echoRingMat = new THREE.MeshBasicMaterial({
+        color: themeColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.4
+      });
+      const echoRingMesh = new THREE.Mesh(echoRingGeo, echoRingMat);
+      echoRingMesh.name = 'echoFloorRing';
+      echoRingMesh.position.set(0, 0, 0.3);
+      group.add(echoRingMesh);
+    }
+
     // Active player floor locator ring (only for the active human player)
     if (!isHologram) {
       const ringGeo = new THREE.RingGeometry(13, 15.5, 32);
@@ -677,6 +692,12 @@ export class GameRenderer3D {
         grp.position.set(p.x, -p.y, 0);
         grp.rotation.z = -p.facingAngle - Math.PI / 2;
         grp.visible = p.isAlive;
+
+        const echoRing = grp.getObjectByName('echoFloorRing') as THREE.Mesh;
+        if (echoRing) {
+          echoRing.rotation.z += 0.015;
+          (echoRing.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.sin(this.animTime * 3 + i) * 0.15;
+        }
       } else {
         grp.visible = false;
       }

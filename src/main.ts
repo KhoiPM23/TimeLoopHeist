@@ -357,6 +357,7 @@ function handleRewind(): void {
   }
   isStandby = true;
   soundFX.startStealthAtmosphere();
+  soundFX.playEchoSpawn();
   updateHUD();
   triggerThorneComm('REWIND');
   restoreFocus();
@@ -489,6 +490,12 @@ function updateHUD(): void {
     secStatus.textContent = 'CLEAR (STEALTH)';
     secStatus.style.color = '#00ffaa';
   }
+
+  // Dynamic tension modulation on background synth drone
+  const timeTension = Math.max(0, 1 - (state.maxTicks - state.currentTick) / (state.maxTicks * 0.4));
+  const alarmTension = state.alarmTriggered ? 1.0 : 0.0;
+  const combinedTension = Math.max(timeTension, alarmTension);
+  soundFX.setAtmosphereTension(combinedTension);
 
   // Standby prompt
   if (standbyPrompt) {

@@ -202,6 +202,7 @@ class SoundFXManager {
   }
 
   private ambientGain: GainNode | null = null;
+  private ambientFilter: BiquadFilterNode | null = null;
   private ambientOscs: OscillatorNode[] = [];
 
   public startStealthAtmosphere(): void {
@@ -212,9 +213,9 @@ class SoundFXManager {
       this.ambientGain.gain.setValueAtTime(0.001, ctx.currentTime);
       this.ambientGain.gain.exponentialRampToValueAtTime(0.035, ctx.currentTime + 1.2);
 
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(160, ctx.currentTime);
+      this.ambientFilter = ctx.createBiquadFilter();
+      this.ambientFilter.type = 'lowpass';
+      this.ambientFilter.frequency.setValueAtTime(160, ctx.currentTime);
 
       const osc1 = ctx.createOscillator();
       osc1.type = 'sawtooth';
@@ -224,9 +225,9 @@ class SoundFXManager {
       osc2.type = 'triangle';
       osc2.frequency.setValueAtTime(55.4, ctx.currentTime); // Detuned binaural beat
 
-      osc1.connect(filter);
-      osc2.connect(filter);
-      filter.connect(this.ambientGain);
+      osc1.connect(this.ambientFilter);
+      osc2.connect(this.ambientFilter);
+      this.ambientFilter.connect(this.ambientGain);
       this.ambientGain.connect(ctx.destination);
 
       osc1.start();
@@ -237,6 +238,17 @@ class SoundFXManager {
     }
   }
 
+  public setAtmosphereTension(tension: number): void {
+    if (!this.ambientFilter || !this.ambientGain || !this.ctx || this.isMuted) return;
+    try {
+      const clamped = Math.max(0, Math.min(1, tension));
+      const targetFreq = 160 + clamped * 420;
+      const targetGain = 0.035 + clamped * 0.03;
+      this.ambientFilter.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
+      this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.1);
+    } catch {}
+  }
+
   public stopStealthAtmosphere(): void {
     if (!this.ambientGain || !this.ctx) return;
     try {
@@ -245,10 +257,33 @@ class SoundFXManager {
         this.ambientOscs.forEach(o => { try { o.stop(); } catch {} });
         this.ambientOscs = [];
         this.ambientGain = null;
+        this.ambientFilter = null;
       }, 400);
     } catch {
       this.ambientGain = null;
+      this.ambientFilter = null;
     }
+  }
+
+  public playEchoSpawn(): void {
+    if (this.isMuted) return;
+    try {
+      const ctx = this.initContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.25);
+    } catch {}
   }
 
   public playRadioChirp(): void {
