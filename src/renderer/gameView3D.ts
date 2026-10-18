@@ -22,9 +22,19 @@ export class GameRenderer3D {
   private cameraTarget = new THREE.Vector3(500, -325, 0);
   private cameraPos = new THREE.Vector3(500, -620, 580);
   private screenShakeAmount = 0;
+  private isScreenShakeEnabled = true;
   private rewindEffectTimer = 0;
   private animTime = 0;
   private clock = new THREE.Clock();
+
+  public setScreenShakeEnabled(enabled: boolean): boolean {
+    this.isScreenShakeEnabled = enabled;
+    return this.isScreenShakeEnabled;
+  }
+
+  public isScreenShakeActive(): boolean {
+    return this.isScreenShakeEnabled;
+  }
 
   // Lighting
   private ambientLight!: THREE.AmbientLight;
@@ -835,13 +845,13 @@ export class GameRenderer3D {
 
     let shakeX = 0;
     let shakeY = 0;
-    if (this.screenShakeAmount > 0) {
+    if (this.isScreenShakeEnabled && this.screenShakeAmount > 0) {
       shakeX = (Math.random() - 0.5) * this.screenShakeAmount;
       shakeY = (Math.random() - 0.5) * this.screenShakeAmount;
-      this.screenShakeAmount = Math.max(0, this.screenShakeAmount - delta * 25);
     }
+    this.screenShakeAmount = Math.max(0, this.screenShakeAmount - delta * 25);
 
-    if (this.rewindEffectTimer > 0) {
+    if (this.isScreenShakeEnabled && this.rewindEffectTimer > 0) {
       this.rewindEffectTimer = Math.max(0, this.rewindEffectTimer - delta * 2);
       shakeX += (Math.random() - 0.5) * 12;
       shakeY += (Math.random() - 0.5) * 12;

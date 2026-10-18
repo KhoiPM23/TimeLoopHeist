@@ -56,6 +56,30 @@ const contextPrompt = document.getElementById('contextPrompt') as HTMLElement;
 const contextKey = document.getElementById('contextKey') as HTMLElement;
 const contextText = document.getElementById('contextText') as HTMLElement;
 
+// Settings & Help Modals
+const btnSettings = document.getElementById('btnSettings') as HTMLButtonElement | null;
+const modalSettings = document.getElementById('modalSettings') as HTMLElement | null;
+const btnCloseSettings = document.getElementById('btnCloseSettings') as HTMLButtonElement | null;
+const sliderMasterVol = document.getElementById('sliderMasterVol') as HTMLInputElement | null;
+const lblMasterVol = document.getElementById('lblMasterVol') as HTMLElement | null;
+const sliderSFXVol = document.getElementById('sliderSFXVol') as HTMLInputElement | null;
+const lblSFXVol = document.getElementById('lblSFXVol') as HTMLElement | null;
+const sliderAmbientVol = document.getElementById('sliderAmbientVol') as HTMLInputElement | null;
+const lblAmbientVol = document.getElementById('lblAmbientVol') as HTMLElement | null;
+const btnToggleShake = document.getElementById('btnToggleShake') as HTMLButtonElement | null;
+const btnToggleFullscreen = document.getElementById('btnToggleFullscreen') as HTMLButtonElement | null;
+
+const btnHelp = document.getElementById('btnHelp') as HTMLButtonElement | null;
+const modalHelp = document.getElementById('modalHelp') as HTMLElement | null;
+const btnCloseHelp = document.getElementById('btnCloseHelp') as HTMLButtonElement | null;
+
+// Debrief Elements
+const debriefLoops = document.getElementById('debriefLoops') as HTMLElement | null;
+const debriefTime = document.getElementById('debriefTime') as HTMLElement | null;
+const debriefIntel = document.getElementById('debriefIntel') as HTMLElement | null;
+const debriefStealth = document.getElementById('debriefStealth') as HTMLElement | null;
+const debriefStars = document.getElementById('debriefStars') as HTMLElement | null;
+
 // Engine & Systems
 const engine = new TimeLoopEngine(0); // Start at Stage 0 (Tutorial)
 const renderer = new GameRenderer3D(canvas);
@@ -154,12 +178,34 @@ window.addEventListener('keydown', (e) => {
   }
 
   if (k === 'p' || e.key === 'Escape') {
+    if (!modalSettings?.classList.contains('hidden')) {
+      toggleSettingsModal();
+      return;
+    }
+    if (!modalHelp?.classList.contains('hidden')) {
+      toggleHelpModal();
+      return;
+    }
+    if (!modalIntelDossier.classList.contains('hidden')) {
+      toggleDossierModal();
+      return;
+    }
     handleTogglePause();
     return;
   }
   if (k === 'i') {
     e.preventDefault();
     toggleDossierModal();
+    return;
+  }
+  if (k === 'o') {
+    e.preventDefault();
+    toggleSettingsModal();
+    return;
+  }
+  if (k === 'h') {
+    e.preventDefault();
+    toggleHelpModal();
     return;
   }
   if (k === 'm') {
@@ -386,6 +432,72 @@ btnMenu.addEventListener('click', () => {
 btnDossier.addEventListener('click', toggleDossierModal);
 btnCloseDossier.addEventListener('click', toggleDossierModal);
 
+btnSettings?.addEventListener('click', toggleSettingsModal);
+btnCloseSettings?.addEventListener('click', toggleSettingsModal);
+
+btnHelp?.addEventListener('click', toggleHelpModal);
+btnCloseHelp?.addEventListener('click', toggleHelpModal);
+
+sliderMasterVol?.addEventListener('input', () => {
+  const val = parseFloat(sliderMasterVol.value);
+  soundFX.setMasterVolume(val);
+  if (lblMasterVol) lblMasterVol.textContent = `${Math.round(val * 100)}%`;
+});
+
+sliderSFXVol?.addEventListener('input', () => {
+  const val = parseFloat(sliderSFXVol.value);
+  soundFX.setSFXVolume(val);
+  if (lblSFXVol) lblSFXVol.textContent = `${Math.round(val * 100)}%`;
+});
+
+sliderAmbientVol?.addEventListener('input', () => {
+  const val = parseFloat(sliderAmbientVol.value);
+  soundFX.setAmbientVolume(val);
+  if (lblAmbientVol) lblAmbientVol.textContent = `${Math.round(val * 100)}%`;
+});
+
+btnToggleShake?.addEventListener('click', () => {
+  const cur = renderer.isScreenShakeActive();
+  const next = renderer.setScreenShakeEnabled(!cur);
+  btnToggleShake.textContent = next ? 'ENABLED' : 'DISABLED';
+  btnToggleShake.style.borderColor = next ? '#00ffaa' : '#64748b';
+  btnToggleShake.style.color = next ? '#00ffaa' : '#64748b';
+});
+
+btnToggleFullscreen?.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+    btnToggleFullscreen.textContent = 'EXIT FULLSCREEN [F11]';
+  } else {
+    document.exitFullscreen().catch(() => {});
+    btnToggleFullscreen.textContent = 'ENTER FULLSCREEN [F11]';
+  }
+});
+
+function toggleSettingsModal(): void {
+  if (!modalSettings) return;
+  const isHidden = modalSettings.classList.contains('hidden');
+  if (isHidden) {
+    modalSettings.classList.remove('hidden');
+    soundFX.playRadioChirp();
+  } else {
+    modalSettings.classList.add('hidden');
+    restoreFocus();
+  }
+}
+
+function toggleHelpModal(): void {
+  if (!modalHelp) return;
+  const isHidden = modalHelp.classList.contains('hidden');
+  if (isHidden) {
+    modalHelp.classList.remove('hidden');
+    soundFX.playRadioChirp();
+  } else {
+    modalHelp.classList.add('hidden');
+    restoreFocus();
+  }
+}
+
 document.querySelectorAll('.btn-stage').forEach((btn) => {
   btn.addEventListener('click', () => {
     const stageIdx = parseInt(btn.getAttribute('data-stage') || '0', 10);
@@ -584,12 +696,49 @@ function processSimEvents(events: SimEvent[]): void {
       triggerThorneComm('EXTRACT');
       const currentIdx = engine.getLevelIndex();
       const total = engine.getTotalLevels();
+      const state = engine.getState();
+
+      // Populate detailed debrief
+      if (debriefLoops) debriefLoops.textContent = `${state.currentLoopIndex} / ${state.maxLoops} LOOPS`;
+      if (debriefTime) debriefTime.textContent = `${(state.currentTick * 0.02).toFixed(1)}s`;
+      
+      const unlockedCount = engine.getUnlockedTerminalIds().length;
+      if (debriefIntel) debriefIntel.textContent = `${unlockedCount} LOGS RECOVERED`;
+
+      const isGhost = !state.alarmTriggered && state.currentLoopIndex <= 2;
+      const isTactical = !state.alarmTriggered;
+
+      if (debriefStealth) {
+        if (isGhost) {
+          debriefStealth.textContent = 'PERFECT GHOST (STEALTH)';
+          debriefStealth.style.color = '#00ffaa';
+        } else if (isTactical) {
+          debriefStealth.textContent = 'TACTICAL INFILTRATOR';
+          debriefStealth.style.color = '#00e5ff';
+        } else {
+          debriefStealth.textContent = 'ALARM COMPROMISED';
+          debriefStealth.style.color = '#ff4444';
+        }
+      }
+
+      if (debriefStars) {
+        if (isGhost) {
+          debriefStars.textContent = '★★★';
+          debriefStars.style.color = '#ffd700';
+        } else if (isTactical) {
+          debriefStars.textContent = '★★☆';
+          debriefStars.style.color = '#00e5ff';
+        } else {
+          debriefStars.textContent = '★☆☆';
+          debriefStars.style.color = '#64748b';
+        }
+      }
 
       if (currentIdx === total - 1) {
         modalGrandClear.classList.remove('hidden');
       } else {
         stageClearTitle.textContent = `${engine.getLevel().name} COMPLETE`;
-        stageClearStats.textContent = `Retrieved in Loop ${engine.getState().currentLoopIndex} of ${engine.getState().maxLoops}`;
+        stageClearStats.textContent = `Retrieved in Loop ${state.currentLoopIndex} of ${state.maxLoops}`;
         modalStageClear.classList.remove('hidden');
       }
     }

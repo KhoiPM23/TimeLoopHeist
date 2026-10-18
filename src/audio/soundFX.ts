@@ -1,12 +1,26 @@
 // Procedural Web Audio Sound Generator for TimeLoopHeist
 class SoundFXManager {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private sfxGain: GainNode | null = null;
   private isMuted: boolean = false;
+
+  private masterVolume: number = 0.8;
+  private sfxVolume: number = 0.8;
+  private ambientVolume: number = 0.8;
 
   private initContext(): AudioContext {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
+
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.masterVolume, this.ctx.currentTime);
+      this.masterGain.connect(this.ctx.destination);
+
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+      this.sfxGain.connect(this.masterGain);
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
@@ -14,8 +28,36 @@ class SoundFXManager {
     return this.ctx;
   }
 
+  public setMasterVolume(vol: number): void {
+    this.masterVolume = Math.max(0, Math.min(1, vol));
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.masterVolume, this.ctx.currentTime);
+    }
+  }
+
+  public setSFXVolume(vol: number): void {
+    this.sfxVolume = Math.max(0, Math.min(1, vol));
+    if (this.sfxGain && this.ctx) {
+      this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+    }
+  }
+
+  public setAmbientVolume(vol: number): void {
+    this.ambientVolume = Math.max(0, Math.min(1, vol));
+    if (this.ambientGain && this.ctx) {
+      this.ambientGain.gain.setValueAtTime(0.035 * this.ambientVolume, this.ctx.currentTime);
+    }
+  }
+
+  public getMasterVolume(): number { return this.masterVolume; }
+  public getSFXVolume(): number { return this.sfxVolume; }
+  public getAmbientVolume(): number { return this.ambientVolume; }
+
   public setMuted(muted: boolean): boolean {
     this.isMuted = muted;
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.masterVolume, this.ctx.currentTime);
+    }
     return this.isMuted;
   }
 

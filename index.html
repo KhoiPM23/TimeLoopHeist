@@ -593,6 +593,12 @@
         <button id="btnMute" class="btn">
           <span id="muteLabel">SFX: ON</span> <span class="key-badge">[M]</span>
         </button>
+        <button id="btnSettings" class="btn" title="Audio & Controls Settings">
+          <span>OPTIONS</span> <span class="key-badge">[O]</span>
+        </button>
+        <button id="btnHelp" class="btn" title="Operative Field Manual">
+          <span>GUIDE</span> <span class="key-badge">[H]</span>
+        </button>
         <button id="btnDossier" class="btn" title="View Classified Intel Dossier">
           <span>DOSSIER</span> <span class="key-badge">[I]</span>
         </button>
@@ -692,17 +698,150 @@
         </div>
       </div>
 
-      <!-- Stage Complete Modal -->
+      <!-- Stage Complete Modal with In-Depth Debrief Breakdown -->
       <div id="modalStageClear" class="modal-backdrop hidden">
-        <div class="modal-box" style="border-color: #00ffaa;">
-          <div class="modal-title" style="color: #00ffaa;">HEIST SUCCESSFUL</div>
-          <div class="modal-body" style="text-align: center;">
-            <p id="stageClearTitle" style="font-size: 16px; margin-bottom: 8px; color: #f1f5f9;">Objective Retrieved & Extracted!</p>
-            <p id="stageClearStats" style="color: #64748b; font-size: 12px; margin-bottom: 12px;">Temporal synchronization perfect.</p>
+        <div class="modal-box" style="border-color: #00ffaa; max-width: 480px;">
+          <div style="font-size: 10px; color: #00ffaa; letter-spacing: 2px; font-weight: 700;">HEIST EVALUATION // SUCCESS</div>
+          <div class="modal-title" style="color: #00ffaa; font-size: 22px; margin-top: 2px;">EXTRACTION COMPLETE</div>
+          <div class="modal-body" style="text-align: left; width: 100%;">
+            <p id="stageClearTitle" style="font-size: 14px; font-weight: 700; color: #f1f5f9; margin-bottom: 10px;">Facility Infiltrated</p>
+            
+            <div style="background: rgba(10, 18, 30, 0.7); border: 1px solid #1e293b; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span style="color: #94a3b8;">TEMPORAL LOOPS UTILIZED:</span>
+                <span id="debriefLoops" style="font-weight: 700; color: #00e5ff;">1 / 3 LOOPS</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span style="color: #94a3b8;">TIME INFILTRATED:</span>
+                <span id="debriefTime" style="font-weight: 700; color: #f1f5f9;">12.4s</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span style="color: #94a3b8;">DATA INTEL DECRYPTED:</span>
+                <span id="debriefIntel" style="font-weight: 700; color: #a855f7;">1 / 1 TERMINALS</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span style="color: #94a3b8;">STEALTH RATING:</span>
+                <span id="debriefStealth" style="font-weight: 700; color: #00ffaa;">PERFECT GHOST</span>
+              </div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 14px;">
+              <div id="debriefStars" style="font-size: 24px; color: #ffd700; letter-spacing: 4px;">★★★</div>
+              <div id="stageClearStats" style="color: #64748b; font-size: 11px; margin-top: 2px;">Synchronization index perfect.</div>
+            </div>
           </div>
           <button id="btnNextStage" class="btn" style="background: #00ffaa; color: #06090e; font-weight: 700; align-self: center; padding: 10px 28px;">
-            ADVANCE TO NEXT STAGE
+            ADVANCE TO NEXT STAGE [SPACE / ENTER]
           </button>
+        </div>
+      </div>
+
+      <!-- Options & Audio Settings Modal -->
+      <div id="modalSettings" class="modal-backdrop hidden">
+        <div class="modal-box" style="border-color: #00e5ff; max-width: 520px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+            <div>
+              <div style="font-size: 10px; color: #00e5ff; letter-spacing: 2px; font-weight: 700;">SYSTEM CONFIGURATION</div>
+              <div class="modal-title" style="font-size: 18px; margin: 2px 0 0 0;">OPERATIVE OPTIONS & AUDIO</div>
+            </div>
+            <button id="btnCloseSettings" class="btn" style="padding: 4px 12px; font-size: 10px;">CLOSE [ESC / O]</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px; font-size: 12px;">
+            <!-- Audio Sliders -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-weight: 700; color: #00e5ff; font-size: 11px;">AUDIO MIXER</span>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #94a3b8;">MASTER VOLUME:</span>
+                <input id="sliderMasterVol" type="range" min="0" max="1" step="0.05" value="0.8" style="width: 180px;">
+                <span id="lblMasterVol" style="width: 40px; text-align: right; color: #f1f5f9;">80%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #94a3b8;">SOUND EFFECTS (SFX):</span>
+                <input id="sliderSFXVol" type="range" min="0" max="1" step="0.05" value="0.8" style="width: 180px;">
+                <span id="lblSFXVol" style="width: 40px; text-align: right; color: #f1f5f9;">80%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #94a3b8;">SYNTH TENSION DRONE:</span>
+                <input id="sliderAmbientVol" type="range" min="0" max="1" step="0.05" value="0.8" style="width: 180px;">
+                <span id="lblAmbientVol" style="width: 40px; text-align: right; color: #f1f5f9;">80%</span>
+              </div>
+            </div>
+
+            <!-- Visual Toggles -->
+            <div style="border-top: 1px solid #1e293b; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-weight: 700; color: #00e5ff; font-size: 11px;">DISPLAY & ACCESSIBILITY</span>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #94a3b8;">SCREEN IMPACT SHAKE:</span>
+                <button id="btnToggleShake" class="btn" style="padding: 4px 14px; font-size: 10px;">ENABLED</button>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #94a3b8;">FULLSCREEN DISPLAY:</span>
+                <button id="btnToggleFullscreen" class="btn" style="padding: 4px 14px; font-size: 10px;">TOGGLE FULLSCREEN [F11]</button>
+              </div>
+            </div>
+
+            <!-- Controls Summary -->
+            <div style="border-top: 1px solid #1e293b; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: #64748b;">
+              <span style="font-weight: 700; color: #00e5ff; font-size: 11px;">OPERATIVE KEYBINDINGS</span>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                <span><span class="key-badge">W,A,S,D</span> / Arrows: Move</span>
+                <span><span class="key-badge">R</span>: Rewind & Clone Echo</span>
+                <span><span class="key-badge">E</span> / Space: Interact / Hack</span>
+                <span><span class="key-badge">F</span>: Restart Run</span>
+                <span><span class="key-badge">P</span>: Pause Simulation</span>
+                <span><span class="key-badge">I</span>: Classified Intel Dossier</span>
+                <span><span class="key-badge">H</span>: Operative Field Manual</span>
+                <span><span class="key-badge">O</span>: Options & Audio Settings</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operative Field Manual / Help Guide Modal -->
+      <div id="modalHelp" class="modal-backdrop hidden">
+        <div class="modal-box" style="border-color: #38bdf8; max-width: 580px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+            <div>
+              <div style="font-size: 10px; color: #38bdf8; letter-spacing: 2px; font-weight: 700;">NETWORK 0x0 FIELD PROTOCOL</div>
+              <div class="modal-title" style="font-size: 18px; color: #38bdf8; margin: 2px 0 0 0;">OPERATIVE INFILTRATION MANUAL</div>
+            </div>
+            <button id="btnCloseHelp" class="btn" style="padding: 4px 12px; font-size: 10px;">CLOSE [ESC / H]</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px; max-height: 380px; overflow-y: auto; padding-right: 6px;">
+            <div style="background: #0e1726; border: 1px solid #1e293b; border-radius: 6px; padding: 10px;">
+              <span style="color: #00e5ff; font-weight: 700; font-size: 12px;">1. TEMPORAL ECHO RECORDING [R]</span>
+              <p style="color: #cbd5e1; font-size: 11px; line-height: 1.4; margin-top: 4px;">
+                You control one timeline at a time. Every action you take is tracked. Pressing <span class="key-badge">R</span> resets time while preserving your previous run as a translucent holographic echo that replays your exact actions in real-time.
+              </p>
+            </div>
+            <div style="background: #0e1726; border: 1px solid #1e293b; border-radius: 6px; padding: 10px;">
+              <span style="color: #00ffaa; font-weight: 700; font-size: 12px;">2. INTERLOCKING PRESSURE PLATES</span>
+              <p style="color: #cbd5e1; font-size: 11px; line-height: 1.4; margin-top: 4px;">
+                Heavy hydraulic blast doors require continuous weight to stay open. Have an earlier clone walk onto and remain standing on the pressure plate, then rewind so your next self can pass through the open gate.
+              </p>
+            </div>
+            <div style="background: #0e1726; border: 1px solid #1e293b; border-radius: 6px; padding: 10px;">
+              <span style="color: #ef4444; font-weight: 700; font-size: 12px;">3. VOLUMETRIC LASER TRIPWIRES</span>
+              <p style="color: #cbd5e1; font-size: 11px; line-height: 1.4; margin-top: 4px;">
+                Crossing active lasers immediately sounds the alarm, locking blast doors and alerting all patrols. Lasers are powered by specific switches or terminals—deactivate them before crossing.
+              </p>
+            </div>
+            <div style="background: #0e1726; border: 1px solid #1e293b; border-radius: 6px; padding: 10px;">
+              <span style="color: #fbbf24; font-weight: 700; font-size: 12px;">4. ENFORCER SENTRY DROIDS</span>
+              <p style="color: #cbd5e1; font-size: 11px; line-height: 1.4; margin-top: 4px;">
+                Patrolling droids project volumetric searchlights. Light beams are blocked by concrete walls and closed doors. Stay outside the yellow search cones to maintain stealth status.
+              </p>
+            </div>
+            <div style="background: #0e1726; border: 1px solid #1e293b; border-radius: 6px; padding: 10px;">
+              <span style="color: #a855f7; font-weight: 700; font-size: 12px;">5. CLASSIFIED WORKSTATION TERMINALS [E]</span>
+              <p style="color: #cbd5e1; font-size: 11px; line-height: 1.4; margin-top: 4px;">
+                Approach glowing computer terminals and press <span class="key-badge">E</span> to download classified corporate logs. Decrypted entries can be reviewed at any time via the Dossier <span class="key-badge">I</span>.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
