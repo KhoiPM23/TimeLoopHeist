@@ -1,5 +1,5 @@
 import { soundFX } from './audio/soundFX';
-import { GameRenderer } from './renderer/gameView';
+import { GameRenderer3D } from './renderer/gameView3D';
 import { TimeLoopEngine } from './simulation/engine';
 import { PlayerInput, SimEvent } from './simulation/types';
 
@@ -36,7 +36,7 @@ const btnRestartStage = document.getElementById('btnRestartStage') as HTMLButton
 
 // Engine & Systems
 const engine = new TimeLoopEngine(0); // Start at Stage 0 (Tutorial)
-const renderer = new GameRenderer(canvas);
+const renderer = new GameRenderer3D(canvas);
 
 // Input state
 const keys: Record<string, boolean> = {};
