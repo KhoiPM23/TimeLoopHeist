@@ -41,10 +41,25 @@ const renderer = new GameRenderer(canvas);
 // Input state
 const keys: Record<string, boolean> = {};
 let isGameActive = false;
+let isStandby = true;
 
 window.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   soundFX.ensureAudioActive();
+
+  // If busted modal is visible, allow instant keyboard recovery
+  if (!modalBusted.classList.contains('hidden')) {
+    if (e.key === 'r' || e.key === 'R' || e.key === ' ') {
+      e.preventDefault();
+      handleRewind();
+      return;
+    }
+    if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      handleResetStage();
+      return;
+    }
+  }
 
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
     handleTogglePause();
@@ -71,6 +86,15 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+function restoreFocus(): void {
+  try {
+    canvas.focus();
+    window.focus();
+  } catch {
+    // Ignore
+  }
+}
+
 function loadStage(stageIdx: number): void {
   engine.loadLevel(stageIdx);
   modalTitle.classList.add('hidden');
@@ -78,7 +102,10 @@ function loadStage(stageIdx: number): void {
   modalGrandClear.classList.add('hidden');
   modalBusted.classList.add('hidden');
   isGameActive = true;
+  isStandby = true;
+  soundFX.startStealthAtmosphere();
   updateHUD();
+  restoreFocus();
 }
 
 window.addEventListener('keyup', (e) => {
@@ -95,6 +122,9 @@ function pollInput(): PlayerInput {
   if (keys['d'] || keys['arrowright']) dx += 1;
 
   const interact = !!(keys[' '] || keys['e']);
+  if (isStandby && (dx !== 0 || dy !== 0 || interact)) {
+    isStandby = false;
+  }
   return { dx, dy, interact };
 }
 
@@ -105,12 +135,22 @@ function handleTogglePause(): void {
   engine.setPaused(willPause);
   pauseLabel.textContent = willPause ? 'RESUME' : 'PAUSE';
   btnPause.style.borderColor = willPause ? '#00ffaa' : '#293d5c';
+  if (willPause) {
+    soundFX.stopStealthAtmosphere();
+  } else {
+    soundFX.startStealthAtmosphere();
+  }
 }
 
 function handleToggleMute(): void {
   const current = soundFX.isAudioMuted();
   const newMuted = soundFX.setMuted(!current);
   muteLabel.textContent = newMuted ? 'SFX: OFF' : 'SFX: ON';
+  if (newMuted) {
+    soundFX.stopStealthAtmosphere();
+  } else if (isGameActive) {
+    soundFX.startStealthAtmosphere();
+  }
 }
 
 function handleRewind(): void {
@@ -122,9 +162,11 @@ function handleRewind(): void {
   if (!advanced) {
     engine.resetEntireRun();
   }
+  isStandby = true;
+  soundFX.startStealthAtmosphere();
   updateHUD();
+  restoreFocus();
 }
-
 
 function handleResetStage(): void {
   soundFX.playRewind();
@@ -132,15 +174,21 @@ function handleResetStage(): void {
   modalBusted.classList.add('hidden');
   modalStageClear.classList.add('hidden');
   modalGrandClear.classList.add('hidden');
+  isStandby = true;
+  soundFX.startStealthAtmosphere();
   updateHUD();
+  restoreFocus();
 }
 
 // Button listeners
 btnStartGame.addEventListener('click', () => {
   modalTitle.classList.add('hidden');
   isGameActive = true;
+  isStandby = true;
   soundFX.ensureAudioActive();
+  soundFX.startStealthAtmosphere();
   updateHUD();
+  restoreFocus();
 });
 
 btnMenu.addEventListener('click', () => {
@@ -163,7 +211,10 @@ btnRetryLoop.addEventListener('click', () => {
   modalBusted.classList.add('hidden');
   soundFX.playRewind();
   engine.resetCurrentLoop();
+  isStandby = true;
+  soundFX.startStealthAtmosphere();
   updateHUD();
+  restoreFocus();
 });
 
 btnRestartStage.addEventListener('click', () => {
@@ -174,7 +225,10 @@ btnNextStage.addEventListener('click', () => {
   modalStageClear.classList.add('hidden');
   const hasNext = engine.nextLevel();
   if (hasNext) {
+    isStandby = true;
+    soundFX.startStealthAtmosphere();
     updateHUD();
+    restoreFocus();
   } else {
     modalGrandClear.classList.remove('hidden');
   }
@@ -183,7 +237,10 @@ btnNextStage.addEventListener('click', () => {
 btnReplayAll.addEventListener('click', () => {
   modalGrandClear.classList.add('hidden');
   engine.loadLevel(0);
+  isStandby = true;
+  soundFX.startStealthAtmosphere();
   updateHUD();
+  restoreFocus();
 });
 
 function updateHUD(): void {
@@ -254,10 +311,12 @@ function processSimEvents(events: SimEvent[]): void {
       soundFX.playLootTaken();
     } else if (ev.type === 'ALARM') {
       soundFX.playAlarm();
+      soundFX.stopStealthAtmosphere();
       bustedReason.textContent = ev.reason || 'Security perimeter breached!';
       modalBusted.classList.remove('hidden');
     } else if (ev.type === 'WIN') {
       soundFX.playVictory();
+      soundFX.stopStealthAtmosphere();
       const currentIdx = engine.getLevelIndex();
       const total = engine.getTotalLevels();
 
@@ -282,7 +341,10 @@ function gameLoop(currentTime: number): void {
   const dt = Math.min(100, currentTime - lastTime);
   lastTime = currentTime;
 
-  if (isGameActive && engine.getState().status === 'RUNNING') {
+  const state = engine.getState();
+  (state as { isStandby?: boolean }).isStandby = isStandby;
+
+  if (isGameActive && state.status === 'RUNNING' && !isStandby) {
     accumulator += dt;
     while (accumulator >= TICK_DURATION_MS) {
       const input = pollInput();

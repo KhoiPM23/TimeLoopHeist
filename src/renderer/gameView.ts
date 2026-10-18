@@ -102,6 +102,9 @@ export class GameRenderer {
       }
     }
 
+    // 1.5. Security Circuit Conduits (Pulsing floor circuit paths from switches to gates/lasers)
+    this.renderCircuitConduits(state.switches, state.doors, state.lasers);
+
     // 2. Extraction Zone (Holographic Landing Pad)
     this.renderExtractionZone(level.extraction, state.activePlayer.hasLoot);
 
@@ -123,6 +126,9 @@ export class GameRenderer {
     // 8. Loot (Floating Quantum Relic)
     this.renderLoot(state.loot);
 
+    // 8.5. Objective Waypoint Beacons (High-tech holographic marker pointing to loot or extraction)
+    this.renderObjectiveBeacons(state.loot, level.extraction, state.activePlayer.hasLoot, state.activePlayer);
+
     // 9. Ghost Players (Recorded Past Echoes with Holographic Scanlines)
     this.renderGhostEchoes(state.ghostPlayers, state.switches);
 
@@ -138,6 +144,11 @@ export class GameRenderer {
     // 13. Contextual Tutorial Hint Banner
     if (state.activeHint) {
       this.renderHintBanner(state.activeHint, width);
+    }
+
+    // 13.5. Standby Planning Briefing Card
+    if (state.isStandby) {
+      this.renderStandbyOverlay(width, height, level.name);
     }
 
     // 14. Rewind Chromatic Glitch Overlay
@@ -816,6 +827,174 @@ export class GameRenderer {
     ctx.fillStyle = '#94a3b8';
     ctx.font = '13px monospace';
     ctx.fillText('Press [P] or Click RESUME to Continue', width / 2, height / 2 + 24);
+    ctx.restore();
+  }
+
+  private drawConduitLine(x1: number, y1: number, x2: number, y2: number, isPowered: boolean, color: string): void {
+    const { ctx } = this;
+    const midX = (x1 + x2) / 2;
+
+    ctx.save();
+    // 1. Outer metallic conduit track casing
+    ctx.strokeStyle = '#0e1726';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(midX, y1);
+    ctx.lineTo(midX, y2);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // 2. Inner glowing cyber circuit line
+    ctx.strokeStyle = isPowered ? '#00ffaa' : color;
+    ctx.lineWidth = isPowered ? 2.5 : 1.2;
+    ctx.shadowColor = isPowered ? '#00ffaa' : color;
+    ctx.shadowBlur = isPowered ? 10 : 2;
+    ctx.globalAlpha = isPowered ? 0.9 : 0.4;
+    ctx.setLineDash(isPowered ? [] : [4, 6]);
+    ctx.stroke();
+
+    // 3. Moving energy pulse along track when switch is pressed
+    if (isPowered) {
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#00ffaa';
+      ctx.shadowBlur = 8;
+      const totalLen = Math.abs(midX - x1) + Math.abs(y2 - y1) + Math.abs(x2 - midX) || 1;
+      const pulsePos = (this.animTime * 160) % totalLen;
+      let px = x1;
+      let py = y1;
+      const seg1 = Math.abs(midX - x1);
+      const seg2 = Math.abs(y2 - y1);
+      if (pulsePos <= seg1) {
+        px = x1 + (midX >= x1 ? 1 : -1) * pulsePos;
+        py = y1;
+      } else if (pulsePos <= seg1 + seg2) {
+        px = midX;
+        py = y1 + (y2 >= y1 ? 1 : -1) * (pulsePos - seg1);
+      } else {
+        px = midX + (x2 >= midX ? 1 : -1) * (pulsePos - seg1 - seg2);
+        py = y2;
+      }
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  private renderCircuitConduits(switches: GameState['switches'], doors: GameState['doors'], lasers: GameState['lasers']): void {
+    for (const sw of switches) {
+      for (const door of doors) {
+        if (door.requiredSwitches.includes(sw.id)) {
+          this.drawConduitLine(sw.x, sw.y, door.x + door.width / 2, door.y + door.height / 2, sw.isPressed, sw.color);
+        }
+      }
+      for (const laser of lasers) {
+        if (laser.controlledBySwitch === sw.id) {
+          const lx = (laser.x1 + laser.x2) / 2;
+          const ly = (laser.y1 + laser.y2) / 2;
+          this.drawConduitLine(sw.x, sw.y, lx, ly, sw.isPressed, sw.color);
+        }
+      }
+    }
+  }
+
+  private renderObjectiveBeacons(loot: GameState['loot'], extraction: LevelConfig['extraction'], hasLoot: boolean, player: GameState['activePlayer']): void {
+    const { ctx } = this;
+    const pulse = (Math.sin(this.animTime * 6) + 1) * 0.5;
+
+    ctx.save();
+    if (!hasLoot && !loot.isCollected) {
+      // Beacon above loot
+      const by = loot.y - 36 - pulse * 6;
+      ctx.fillStyle = '#00e5ff';
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur = 12;
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('[TARGET: SECURE ITEM]', loot.x, by - 6);
+
+      // Downward pointer
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(loot.x - 6, by);
+      ctx.lineTo(loot.x, by + 6);
+      ctx.lineTo(loot.x + 6, by);
+      ctx.stroke();
+
+      // Guide line if far away
+      const dist = Math.hypot(player.x - loot.x, player.y - loot.y);
+      if (dist > 180) {
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.15)';
+        ctx.setLineDash([4, 8]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.lineTo(loot.x, loot.y);
+        ctx.stroke();
+      }
+    } else if (hasLoot) {
+      // Beacon above extraction
+      const exX = extraction.x + extraction.width / 2;
+      const exY = extraction.y + extraction.height / 2;
+      const by = extraction.y - 22 - pulse * 6;
+      ctx.fillStyle = '#00ffaa';
+      ctx.shadowColor = '#00ffaa';
+      ctx.shadowBlur = 16;
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('>>> EXTRACT HERE <<<', exX, by - 8);
+
+      // Downward chevron
+      ctx.strokeStyle = '#00ffaa';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(exX - 8, by);
+      ctx.lineTo(exX, by + 8);
+      ctx.lineTo(exX + 8, by);
+      ctx.stroke();
+
+      // Guide line from player to extraction pad
+      ctx.strokeStyle = 'rgba(0, 255, 170, 0.22)';
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(exX, exY);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  private renderStandbyOverlay(width: number, height: number, levelName: string): void {
+    const { ctx } = this;
+    const pulse = (Math.sin(this.animTime * 4) + 1) * 0.5;
+
+    ctx.save();
+    const boxW = 500;
+    const boxH = 64;
+    const boxX = (width - boxW) / 2;
+    const boxY = height - 120;
+
+    // Tactical card
+    ctx.fillStyle = 'rgba(10, 16, 28, 0.94)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = `rgba(0, 229, 255, ${0.4 + pulse * 0.5})`;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`// ${levelName.toUpperCase()} — SURVEILLANCE & RECONNAISSANCE ACTIVE`, width / 2, boxY + 24);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`PRESS [W, A, S, D] OR [SPACE] TO ENGAGE HEIST TIMELOOP`, width / 2, boxY + 46);
     ctx.restore();
   }
 }

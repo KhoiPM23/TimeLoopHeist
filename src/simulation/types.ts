@@ -127,6 +127,7 @@ export interface GameState {
   alarmReason?: string;
   levelCompleted: boolean;
   activeHint?: string;
+  isStandby?: boolean;
   loopTimelineEvents: LoopTimelineEvent[][];
 }
 

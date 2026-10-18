@@ -200,6 +200,56 @@ class SoundFXManager {
       // Ignore
     }
   }
+
+  private ambientGain: GainNode | null = null;
+  private ambientOscs: OscillatorNode[] = [];
+
+  public startStealthAtmosphere(): void {
+    if (this.isMuted || this.ambientGain) return;
+    try {
+      const ctx = this.initContext();
+      this.ambientGain = ctx.createGain();
+      this.ambientGain.gain.setValueAtTime(0.001, ctx.currentTime);
+      this.ambientGain.gain.exponentialRampToValueAtTime(0.035, ctx.currentTime + 1.2);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(160, ctx.currentTime);
+
+      const osc1 = ctx.createOscillator();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(55, ctx.currentTime); // Low A1 stealth drone
+
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(55.4, ctx.currentTime); // Detuned binaural beat
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(this.ambientGain);
+      this.ambientGain.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+      this.ambientOscs = [osc1, osc2];
+    } catch {
+      // Ignore
+    }
+  }
+
+  public stopStealthAtmosphere(): void {
+    if (!this.ambientGain || !this.ctx) return;
+    try {
+      this.ambientGain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+      setTimeout(() => {
+        this.ambientOscs.forEach(o => { try { o.stop(); } catch {} });
+        this.ambientOscs = [];
+        this.ambientGain = null;
+      }, 400);
+    } catch {
+      this.ambientGain = null;
+    }
+  }
 }
 
 export const soundFX = new SoundFXManager();
