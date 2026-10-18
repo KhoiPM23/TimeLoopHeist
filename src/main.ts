@@ -52,6 +52,9 @@ const commSender = document.getElementById('commSender') as HTMLElement;
 const commCallsign = document.getElementById('commCallsign') as HTMLElement;
 const commText = document.getElementById('commText') as HTMLElement;
 const standbyPrompt = document.getElementById('standbyPrompt') as HTMLElement;
+const contextPrompt = document.getElementById('contextPrompt') as HTMLElement;
+const contextKey = document.getElementById('contextKey') as HTMLElement;
+const contextText = document.getElementById('contextText') as HTMLElement;
 
 // Engine & Systems
 const engine = new TimeLoopEngine(0); // Start at Stage 0 (Tutorial)
@@ -493,6 +496,57 @@ function updateHUD(): void {
       standbyPrompt.classList.remove('hidden');
     } else {
       standbyPrompt.classList.add('hidden');
+    }
+  }
+
+  // Contextual Interaction Prompts
+  if (contextPrompt && contextKey && contextText) {
+    let promptShown = false;
+
+    // 1. Proximity to Unhacked Terminals
+    if (state.terminals) {
+      for (const term of state.terminals) {
+        if (!term.isHacked) {
+          const dist = Math.hypot(state.activePlayer.x - term.x, state.activePlayer.y - term.y);
+          if (dist <= state.activePlayer.radius + term.radius + 24) {
+            contextKey.textContent = '[E] / APPROACH';
+            contextText.textContent = `HACK TERMINAL // ${term.title}`;
+            contextPrompt.classList.remove('hidden');
+            promptShown = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // 2. Proximity to Loot Core
+    if (!promptShown && !state.activePlayer.hasLoot && !state.loot.isCollected) {
+      const dist = Math.hypot(state.activePlayer.x - state.loot.x, state.activePlayer.y - state.loot.y);
+      if (dist <= state.activePlayer.radius + state.loot.radius + 28) {
+        contextKey.textContent = '[STEP]';
+        contextText.textContent = 'SECURE DATA CORE';
+        contextPrompt.classList.remove('hidden');
+        promptShown = true;
+      }
+    }
+
+    // 3. Proximity to Extraction Zone
+    if (!promptShown && state.activePlayer.hasLoot) {
+      const ex = level.extraction;
+      const dist = Math.hypot(
+        state.activePlayer.x - (ex.x + ex.width / 2),
+        state.activePlayer.y - (ex.y + ex.height / 2)
+      );
+      if (dist <= ex.width + 30) {
+        contextKey.textContent = '[EXTRACT]';
+        contextText.textContent = 'ENTER EVACUATION ZONE';
+        contextPrompt.classList.remove('hidden');
+        promptShown = true;
+      }
+    }
+
+    if (!promptShown) {
+      contextPrompt.classList.add('hidden');
     }
   }
 }

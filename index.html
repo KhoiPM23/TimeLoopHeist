@@ -535,9 +535,40 @@
       box-shadow: 0 0 10px #00e5ff;
     }
 
-    @keyframes standbyPulse {
-      0% { opacity: 0.8; transform: translateX(-50%) scale(0.98); }
-      100% { opacity: 1; transform: translateX(-50%) scale(1.02); }
+    .context-prompt {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 20, 36, 0.94);
+      border: 1px solid #00ffaa;
+      box-shadow: 0 0 24px rgba(0, 255, 170, 0.35);
+      color: #00ffaa;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1px;
+      padding: 7px 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 25;
+      pointer-events: none;
+      animation: contextBounce 1s ease-in-out infinite alternate;
+    }
+    .context-key {
+      background: rgba(0, 255, 170, 0.2);
+      border: 1px solid #00ffaa;
+      color: #00ffaa;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+    @keyframes contextBounce {
+      0% { transform: translateX(-50%) translateY(0); }
+      100% { transform: translateX(-50%) translateY(-4px); }
     }
   </style>
 </head>
@@ -597,6 +628,12 @@
       <div id="standbyPrompt" class="standby-prompt">
         <span class="standby-dot"></span>
         <span>STANDBY // MOVE [W, A, S, D] OR ARROWS TO INITIATE LOOP</span>
+      </div>
+
+      <!-- Contextual Interaction Prompt Card -->
+      <div id="contextPrompt" class="context-prompt hidden">
+        <span class="context-key" id="contextKey">[E]</span>
+        <span class="context-text" id="contextText">HACK DATA TERMINAL</span>
       </div>
 
       <!-- Tactical Radio Comms Card -->

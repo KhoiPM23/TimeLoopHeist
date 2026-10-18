@@ -175,6 +175,34 @@ export class GameRenderer3D {
     arrowMesh.position.set(0, 16, 2);
     group.add(arrowMesh);
 
+    // Active player floor locator ring (only for the active human player)
+    if (!isHologram) {
+      const ringGeo = new THREE.RingGeometry(13, 15.5, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.name = 'playerFloorRing';
+      ringMesh.position.set(0, 0, 0.4);
+      group.add(ringMesh);
+
+      // Outer dashed tracker ring
+      const outerRingGeo = new THREE.RingGeometry(18, 19.5, 24);
+      const outerRingMat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.45
+      });
+      const outerRingMesh = new THREE.Mesh(outerRingGeo, outerRingMat);
+      outerRingMesh.name = 'playerOuterRing';
+      outerRingMesh.position.set(0, 0, 0.3);
+      group.add(outerRingMesh);
+    }
+
     return group;
   }
 
@@ -620,6 +648,17 @@ export class GameRenderer3D {
     this.playerGroup.position.set(player.x, -player.y, 0);
     this.playerGroup.rotation.z = -player.facingAngle - Math.PI / 2;
     this.playerGroup.visible = player.isAlive;
+
+    const ring = this.playerGroup.getObjectByName('playerFloorRing') as THREE.Mesh;
+    const outerRing = this.playerGroup.getObjectByName('playerOuterRing') as THREE.Mesh;
+    if (ring) {
+      ring.rotation.z += 0.025;
+      (ring.material as THREE.MeshBasicMaterial).opacity = 0.55 + Math.sin(this.animTime * 5) * 0.3;
+    }
+    if (outerRing) {
+      outerRing.rotation.z -= 0.015;
+      (outerRing.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.sin(this.animTime * 3) * 0.15;
+    }
   }
 
   private syncClones(ghostPlayers: PlayerState[]): void {
