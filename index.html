@@ -683,17 +683,53 @@
             </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
-            <button id="btnStartGame" class="btn" style="background: #00e5ff; color: #06090e; font-weight: 700; padding: 10px 32px; font-size: 13px;">
-              START MISSION [STAGE 0]
+          <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
+            <button id="btnStartGame" class="btn" style="background: #00e5ff; color: #06090e; font-weight: 700; padding: 12px 32px; font-size: 13px; width: 100%; justify-content: center;">
+              START / RESUME MISSION [STAGE 0]
             </button>
-            <div class="stage-select-menu">
+            <div style="display: flex; gap: 6px; width: 100%;">
+              <button id="btnTitleHelp" class="btn" style="flex: 1; justify-content: center; font-size: 10px; border-color: #38bdf8; color: #38bdf8;">GUIDE [H]</button>
+              <button id="btnTitleDossier" class="btn" style="flex: 1; justify-content: center; font-size: 10px; border-color: #00e5ff; color: #00e5ff;">DOSSIER [I]</button>
+              <button id="btnTitleSettings" class="btn" style="flex: 1; justify-content: center; font-size: 10px; border-color: #94a3b8; color: #cbd5e1;">OPTIONS [O]</button>
+            </div>
+            <div id="stageSelectContainer" class="stage-select-menu" style="width: 100%;">
               <button class="btn-stage" data-stage="0">Stage 0: Tutorial</button>
               <button class="btn-stage" data-stage="1">Stage 1: Laser Grid</button>
               <button class="btn-stage" data-stage="2">Stage 2: Quantum Sanctum</button>
               <button class="btn-stage" data-stage="3">Stage 3: Obsidian Vault</button>
               <button class="btn-stage" data-stage="4">Stage 4: Quantum Paradox</button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tactical Pause Modal -->
+      <div id="modalPause" class="modal-backdrop hidden">
+        <div class="modal-box" style="border-color: #00e5ff; max-width: 440px;">
+          <div style="font-size: 10px; color: #00e5ff; letter-spacing: 2px; font-weight: 700;">TEMPORAL SYNCHRONIZATION FROZEN</div>
+          <div class="modal-title" style="color: #00e5ff; font-size: 20px; margin: 2px 0 8px;">INFILTRATION SUSPENDED</div>
+          <div class="modal-body" style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+            Temporal echo timeline paused. Select an operative order:
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <button id="btnResumeGame" class="btn" style="background: #00e5ff; color: #06090e; font-weight: 700; justify-content: center; padding: 10px 24px;">
+              RESUME MISSION [P / ESC]
+            </button>
+            <button id="btnPauseRestartStage" class="btn" style="justify-content: center; border-color: #ffd700; color: #ffd700;">
+              RESTART STAGE [F]
+            </button>
+            <button id="btnPauseRewindLoop" class="btn" style="justify-content: center; border-color: #a855f7; color: #c084fc;">
+              REWIND TIMELINE [R]
+            </button>
+            <button id="btnPauseSettings" class="btn" style="justify-content: center; border-color: #64748b; color: #cbd5e1;">
+              OPERATIVE OPTIONS [O]
+            </button>
+            <button id="btnPauseHelp" class="btn" style="justify-content: center; border-color: #38bdf8; color: #38bdf8;">
+              FIELD MANUAL [H]
+            </button>
+            <button id="btnPauseToMenu" class="btn" style="justify-content: center; border-color: #ef4444; color: #f87171;">
+              ABORT TO MAIN MENU [M]
+            </button>
           </div>
         </div>
       </div>
@@ -730,9 +766,17 @@
               <div id="stageClearStats" style="color: #64748b; font-size: 11px; margin-top: 2px;">Synchronization index perfect.</div>
             </div>
           </div>
-          <button id="btnNextStage" class="btn" style="background: #00ffaa; color: #06090e; font-weight: 700; align-self: center; padding: 10px 28px;">
+          <button id="btnNextStage" class="btn" style="background: #00ffaa; color: #06090e; font-weight: 700; align-self: center; padding: 10px 28px; width: 100%; justify-content: center;">
             ADVANCE TO NEXT STAGE [SPACE / ENTER]
           </button>
+          <div style="display: flex; gap: 8px; width: 100%; margin-top: 8px;">
+            <button id="btnStageClearRetry" class="btn" style="flex: 1; justify-content: center; border-color: #ffd700; color: #ffd700;">
+              RETRY FOR 3 STARS [F]
+            </button>
+            <button id="btnStageClearMenu" class="btn" style="flex: 1; justify-content: center; border-color: #38bdf8; color: #38bdf8;">
+              STAGE SELECT [M]
+            </button>
+          </div>
         </div>
       </div>
 
@@ -847,17 +891,40 @@
 
       <!-- Grand Finale Victory Modal -->
       <div id="modalGrandClear" class="modal-backdrop hidden">
-        <div class="modal-box" style="border-color: #ffd700;">
-          <div class="modal-title" style="color: #ffd700;">MASTER TEMPORAL OPERATIVE</div>
-          <div class="modal-body" style="text-align: center;">
-            <p style="font-size: 16px; color: #f1f5f9; margin-bottom: 8px;">All 5 Vaults Successfully Infiltrated!</p>
-            <p style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
-              From the induction trial through the Quantum Paradox Vault, your temporal echoes operated in seamless synchrony.
-            </p>
+        <div class="modal-box" style="border-color: #ffd700; max-width: 540px;">
+          <div style="font-size: 11px; color: #ffd700; letter-spacing: 2px; font-weight: 700;">OPERATION OUROBOROS // ARCHIVAL DEBRIEF</div>
+          <div class="modal-title" style="color: #ffd700; font-size: 22px; margin: 4px 0 10px;">MASTER TEMPORAL OPERATIVE</div>
+          
+          <div style="background: rgba(10, 18, 30, 0.8); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 14px; width: 100%;">
+            <div style="text-align: center; margin-bottom: 10px;">
+              <div id="grandCampaignStars" style="font-size: 30px; color: #ffd700; letter-spacing: 6px; text-shadow: 0 0 16px rgba(255, 215, 0, 0.6);">15 / 15 ★★★</div>
+              <div id="grandMasterRank" style="font-size: 12px; font-weight: 700; color: #00ffaa; letter-spacing: 1.5px; margin-top: 4px;">CHRONO-AGENT CODENAME: OUROBOROS</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; border-top: 1px solid #1e293b; padding-top: 10px; text-align: left;">
+              <div style="color: #94a3b8;">TOTAL LOOPS EXECUTED: <b id="grandTotalLoops" style="color: #00e5ff;">5 Loops</b></div>
+              <div style="color: #94a3b8;">TOTAL INFILTRATION TIME: <b id="grandTotalTime" style="color: #f1f5f9;">62.4s</b></div>
+              <div style="color: #94a3b8;">INTEL TERMINALS HACKED: <b id="grandTotalIntel" style="color: #a855f7;">5 / 5 Decrypted</b></div>
+              <div style="color: #94a3b8;">STEALTH EVALUATION: <b style="color: #00ffaa;">PERFECT GHOST</b></div>
+            </div>
           </div>
-          <button id="btnReplayAll" class="btn" style="background: #ffd700; color: #06090e; font-weight: 700; align-self: center; padding: 10px 28px;">
-            REPLAY MISSIONS FROM STAGE 0
-          </button>
+
+          <div class="modal-body" style="font-size: 12px; color: #94a3b8; line-height: 1.6; margin-bottom: 16px; text-align: left;">
+            With the Quantum Paradox Core extracted from Sector 4, the corporate surveillance grid collapsed into recursive timeline resonance. Your past echoes merge into an indestructible stealth myth. Network 0x0 honors your mastery.
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <button id="btnReplayAll" class="btn" style="background: #ffd700; color: #06090e; font-weight: 700; justify-content: center; padding: 10px 24px;">
+              REPLAY CAMPAIGN [STAGE 0]
+            </button>
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <button id="btnGrandDossier" class="btn" style="flex: 1; justify-content: center; border-color: #00e5ff; color: #00e5ff;">
+                INTEL DOSSIER [I]
+              </button>
+              <button id="btnGrandToMenu" class="btn" style="flex: 1; justify-content: center; border-color: #38bdf8; color: #38bdf8;">
+                HEADQUARTERS [M]
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

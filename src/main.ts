@@ -25,12 +25,35 @@ const btnDossier = document.getElementById('btnDossier') as HTMLButtonElement;
 // Screens & Modals
 const modalTitle = document.getElementById('modalTitle') as HTMLElement;
 const btnStartGame = document.getElementById('btnStartGame') as HTMLButtonElement;
+const btnTitleHelp = document.getElementById('btnTitleHelp') as HTMLButtonElement | null;
+const btnTitleDossier = document.getElementById('btnTitleDossier') as HTMLButtonElement | null;
+const btnTitleSettings = document.getElementById('btnTitleSettings') as HTMLButtonElement | null;
+
+const modalPause = document.getElementById('modalPause') as HTMLElement | null;
+const btnResumeGame = document.getElementById('btnResumeGame') as HTMLButtonElement | null;
+const btnPauseRestartStage = document.getElementById('btnPauseRestartStage') as HTMLButtonElement | null;
+const btnPauseRewindLoop = document.getElementById('btnPauseRewindLoop') as HTMLButtonElement | null;
+const btnPauseSettings = document.getElementById('btnPauseSettings') as HTMLButtonElement | null;
+const btnPauseHelp = document.getElementById('btnPauseHelp') as HTMLButtonElement | null;
+const btnPauseToMenu = document.getElementById('btnPauseToMenu') as HTMLButtonElement | null;
+
 const modalStageClear = document.getElementById('modalStageClear') as HTMLElement;
 const stageClearTitle = document.getElementById('stageClearTitle') as HTMLElement;
 const stageClearStats = document.getElementById('stageClearStats') as HTMLElement;
 const btnNextStage = document.getElementById('btnNextStage') as HTMLButtonElement;
+const btnStageClearRetry = document.getElementById('btnStageClearRetry') as HTMLButtonElement | null;
+const btnStageClearMenu = document.getElementById('btnStageClearMenu') as HTMLButtonElement | null;
+
 const modalGrandClear = document.getElementById('modalGrandClear') as HTMLElement;
 const btnReplayAll = document.getElementById('btnReplayAll') as HTMLButtonElement;
+const btnGrandDossier = document.getElementById('btnGrandDossier') as HTMLButtonElement | null;
+const btnGrandToMenu = document.getElementById('btnGrandToMenu') as HTMLButtonElement | null;
+const grandCampaignStars = document.getElementById('grandCampaignStars') as HTMLElement | null;
+const grandMasterRank = document.getElementById('grandMasterRank') as HTMLElement | null;
+const grandTotalLoops = document.getElementById('grandTotalLoops') as HTMLElement | null;
+const grandTotalTime = document.getElementById('grandTotalTime') as HTMLElement | null;
+const grandTotalIntel = document.getElementById('grandTotalIntel') as HTMLElement | null;
+
 const modalBusted = document.getElementById('modalBusted') as HTMLElement;
 const bustedReason = document.getElementById('bustedReason') as HTMLElement;
 const btnRetryLoop = document.getElementById('btnRetryLoop') as HTMLButtonElement;
@@ -91,15 +114,132 @@ let isStandby = true;
 let selectedTerminalId = 'term-0-1';
 let commTimer: ReturnType<typeof setTimeout> | null = null;
 
-function startGame(): void {
+function closeAllModals(): void {
   modalTitle.classList.add('hidden');
-  isGameActive = true;
-  isStandby = true;
-  soundFX.ensureAudioActive();
-  soundFX.startStealthAtmosphere();
-  updateHUD();
-  triggerThorneComm('START');
-  restoreFocus();
+  modalStageClear.classList.add('hidden');
+  modalGrandClear.classList.add('hidden');
+  modalPause?.classList.add('hidden');
+  modalBusted.classList.add('hidden');
+  modalIntelDossier.classList.add('hidden');
+  modalSettings?.classList.add('hidden');
+  modalHelp?.classList.add('hidden');
+}
+
+interface StageRecord {
+  stars: number;
+  time: number;
+  loops: number;
+}
+
+function getStoredStageRecords(): Record<number, StageRecord> {
+  try {
+    const raw = localStorage.getItem('timeloop_stage_records');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStageRecord(stageIdx: number, stars: number, time: number, loops: number): void {
+  try {
+    const records = getStoredStageRecords();
+    const existing = records[stageIdx];
+    if (!existing || stars > existing.stars || (stars === existing.stars && time < existing.time)) {
+      records[stageIdx] = { stars, time, loops };
+      localStorage.setItem('timeloop_stage_records', JSON.stringify(records));
+    }
+  } catch {}
+}
+
+function updateStageSelectBadges(): void {
+  const records = getStoredStageRecords();
+  const stageButtons = document.querySelectorAll<HTMLButtonElement>('.btn-stage');
+  const baseNames = [
+    'Stage 0: Tutorial',
+    'Stage 1: Laser Grid',
+    'Stage 2: Quantum Sanctum',
+    'Stage 3: Obsidian Vault',
+    'Stage 4: Quantum Paradox'
+  ];
+  stageButtons.forEach((btn) => {
+    const stageIdx = parseInt(btn.dataset.stage || btn.getAttribute('data-stage') || '0', 10);
+    const rec = records[stageIdx];
+    const baseName = baseNames[stageIdx] || `Stage ${stageIdx}`;
+    if (rec && rec.stars > 0) {
+      const starsStr = '★'.repeat(rec.stars);
+      btn.innerHTML = `${baseName} <span style="color: #ffd700; margin-left: 6px;">${starsStr}</span>`;
+    } else {
+      btn.textContent = baseName;
+    }
+  });
+
+  try {
+    const lastStage = localStorage.getItem('timeloop_last_stage');
+    const stageToResume = lastStage ? parseInt(lastStage, 10) : 0;
+    if (btnStartGame && stageToResume > 0 && stageToResume < ALL_LEVELS.length) {
+      btnStartGame.textContent = `CONTINUE MISSION [STAGE ${stageToResume}]`;
+    } else if (btnStartGame) {
+      btnStartGame.textContent = `START MISSION [STAGE 0]`;
+    }
+  } catch {}
+}
+
+function updateGrandCampaignModal(): void {
+  const records = getStoredStageRecords();
+  let totalStars = 0;
+  let totalLoops = 0;
+  let totalTime = 0;
+
+  for (let i = 0; i < ALL_LEVELS.length; i++) {
+    const rec = records[i];
+    if (rec) {
+      totalStars += rec.stars;
+      totalLoops += rec.loops;
+      totalTime += rec.time;
+    }
+  }
+
+  const maxStars = ALL_LEVELS.length * 3;
+  if (grandCampaignStars) {
+    grandCampaignStars.textContent = `${totalStars} / ${maxStars} ★★★`;
+  }
+  if (grandTotalLoops) {
+    grandTotalLoops.textContent = `${totalLoops} Loops`;
+  }
+  if (grandTotalTime) {
+    grandTotalTime.textContent = `${totalTime.toFixed(1)}s`;
+  }
+  if (grandTotalIntel) {
+    const unlockedCount = engine.getUnlockedTerminalIds().length;
+    grandTotalIntel.textContent = `${unlockedCount} / 5 Decrypted`;
+  }
+  if (grandMasterRank) {
+    if (totalStars === maxStars) {
+      grandMasterRank.textContent = 'LEGENDARY GHOST OPERATIVE';
+      grandMasterRank.style.color = '#00ffaa';
+    } else if (totalStars >= 11) {
+      grandMasterRank.textContent = 'MASTER TEMPORAL INFILTRATOR';
+      grandMasterRank.style.color = '#00e5ff';
+    } else {
+      grandMasterRank.textContent = 'CHRONO-AGENT CODENAME: OUROBOROS';
+      grandMasterRank.style.color = '#ffd700';
+    }
+  }
+}
+
+function startGame(): void {
+  soundFX.playUIClick();
+  let targetStage = 0;
+  try {
+    const lastStageStr = localStorage.getItem('timeloop_last_stage');
+    if (lastStageStr) {
+      const parsed = parseInt(lastStageStr, 10);
+      if (parsed >= 0 && parsed < ALL_LEVELS.length) {
+        targetStage = parsed;
+      }
+    }
+  } catch {}
+  loadStage(targetStage);
 }
 
 window.addEventListener('keydown', (e) => {
@@ -107,8 +247,23 @@ window.addEventListener('keydown', (e) => {
   keys[k] = true;
   soundFX.ensureAudioActive();
 
-  // If title screen is open, Space / Enter / WASD starts game
+  // If title screen is open, Space / Enter / WASD starts game; H, I, O toggle modals
   if (!modalTitle.classList.contains('hidden')) {
+    if (k === 'h') {
+      e.preventDefault();
+      toggleHelpModal();
+      return;
+    }
+    if (k === 'i') {
+      e.preventDefault();
+      toggleDossierModal();
+      return;
+    }
+    if (k === 'o') {
+      e.preventDefault();
+      toggleSettingsModal();
+      return;
+    }
     if (e.key === 'Enter' || e.code === 'Space' || ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
       e.preventDefault();
       startGame();
@@ -143,7 +298,7 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
-  // If Stage Clear modal is visible, Space / Enter advances
+  // If Stage Clear modal is visible: Space/Enter advances, F retries, M returns to stage select
   if (!modalStageClear.classList.contains('hidden')) {
     if (e.key === 'Enter' || e.code === 'Space') {
       e.preventDefault();
@@ -156,25 +311,85 @@ window.addEventListener('keydown', (e) => {
         triggerThorneComm('START');
         restoreFocus();
       } else {
+        updateGrandCampaignModal();
         modalGrandClear.classList.remove('hidden');
       }
       return;
     }
+    if (k === 'f') {
+      e.preventDefault();
+      modalStageClear.classList.add('hidden');
+      handleResetStage();
+      return;
+    }
+    if (k === 'm') {
+      e.preventDefault();
+      closeAllModals();
+      modalTitle.classList.remove('hidden');
+      updateStageSelectBadges();
+      return;
+    }
   }
 
-  // If Grand Clear modal is visible, Space / Enter replays all
+  // If Grand Clear modal is visible: Space/Enter replays all, I views dossier, M returns to menu
   if (!modalGrandClear.classList.contains('hidden')) {
     if (e.key === 'Enter' || e.code === 'Space') {
       e.preventDefault();
       modalGrandClear.classList.add('hidden');
-      engine.loadLevel(0);
-      isStandby = true;
-      soundFX.startStealthAtmosphere();
-      updateHUD();
-      triggerThorneComm('START');
-      restoreFocus();
+      loadStage(0);
       return;
     }
+    if (k === 'i') {
+      e.preventDefault();
+      toggleDossierModal();
+      return;
+    }
+    if (k === 'm') {
+      e.preventDefault();
+      closeAllModals();
+      modalTitle.classList.remove('hidden');
+      updateStageSelectBadges();
+      return;
+    }
+  }
+
+  // If game is paused, handle pause modal shortcuts
+  if (engine.getState().status === 'PAUSED') {
+    if (k === 'p' || e.key === 'Escape') {
+      e.preventDefault();
+      handleTogglePause();
+      return;
+    }
+    if (k === 'f') {
+      e.preventDefault();
+      modalPause?.classList.add('hidden');
+      handleResetStage();
+      return;
+    }
+    if (k === 'r') {
+      e.preventDefault();
+      modalPause?.classList.add('hidden');
+      handleRewind();
+      return;
+    }
+    if (k === 'o') {
+      e.preventDefault();
+      toggleSettingsModal();
+      return;
+    }
+    if (k === 'h') {
+      e.preventDefault();
+      toggleHelpModal();
+      return;
+    }
+    if (k === 'm') {
+      e.preventDefault();
+      closeAllModals();
+      modalTitle.classList.remove('hidden');
+      updateStageSelectBadges();
+      return;
+    }
+    return;
   }
 
   if (k === 'p' || e.key === 'Escape') {
@@ -333,12 +548,14 @@ function renderDossierDetail(term: TerminalState, isUnlocked: boolean): void {
 
 function loadStage(stageIdx: number): void {
   engine.loadLevel(stageIdx);
-  modalTitle.classList.add('hidden');
-  modalStageClear.classList.add('hidden');
-  modalGrandClear.classList.add('hidden');
-  modalBusted.classList.add('hidden');
-  modalIntelDossier.classList.add('hidden');
+  try {
+    localStorage.setItem('timeloop_last_stage', String(stageIdx));
+  } catch {}
+  closeAllModals();
   isGameActive = true;
+  engine.setPaused(false);
+  pauseLabel.textContent = 'PAUSE';
+  btnPause.style.borderColor = '#293d5c';
   isStandby = true;
   soundFX.startStealthAtmosphere();
   updateHUD();
@@ -376,8 +593,11 @@ function handleTogglePause(): void {
   btnPause.style.borderColor = willPause ? '#00ffaa' : '#293d5c';
   if (willPause) {
     soundFX.stopStealthAtmosphere();
+    modalPause?.classList.remove('hidden');
   } else {
+    modalPause?.classList.add('hidden');
     soundFX.startStealthAtmosphere();
+    restoreFocus();
   }
 }
 
@@ -412,9 +632,10 @@ function handleRewind(): void {
 function handleResetStage(): void {
   soundFX.playRewind();
   engine.resetEntireRun();
-  modalBusted.classList.add('hidden');
-  modalStageClear.classList.add('hidden');
-  modalGrandClear.classList.add('hidden');
+  closeAllModals();
+  engine.setPaused(false);
+  pauseLabel.textContent = 'PAUSE';
+  btnPause.style.borderColor = '#293d5c';
   isStandby = true;
   soundFX.startStealthAtmosphere();
   updateHUD();
@@ -426,7 +647,12 @@ function handleResetStage(): void {
 btnStartGame.addEventListener('click', startGame);
 
 btnMenu.addEventListener('click', () => {
+  soundFX.playUIClick();
+  closeAllModals();
   modalTitle.classList.remove('hidden');
+  updateStageSelectBadges();
+  engine.setPaused(true);
+  soundFX.stopStealthAtmosphere();
 });
 
 btnDossier.addEventListener('click', toggleDossierModal);
@@ -500,17 +726,31 @@ function toggleHelpModal(): void {
 
 document.querySelectorAll('.btn-stage').forEach((btn) => {
   btn.addEventListener('click', () => {
+    soundFX.playUIClick();
     const stageIdx = parseInt(btn.getAttribute('data-stage') || '0', 10);
     loadStage(stageIdx);
   });
 });
 
-btnPause.addEventListener('click', handleTogglePause);
-btnRewind.addEventListener('click', handleRewind);
-btnReset.addEventListener('click', handleResetStage);
-btnMute.addEventListener('click', handleToggleMute);
+btnPause.addEventListener('click', () => {
+  soundFX.playUIClick();
+  handleTogglePause();
+});
+btnRewind.addEventListener('click', () => {
+  soundFX.playUIClick();
+  handleRewind();
+});
+btnReset.addEventListener('click', () => {
+  soundFX.playUIClick();
+  handleResetStage();
+});
+btnMute.addEventListener('click', () => {
+  soundFX.playUIClick();
+  handleToggleMute();
+});
 
 btnRetryLoop.addEventListener('click', () => {
+  soundFX.playUIClick();
   modalBusted.classList.add('hidden');
   soundFX.playRewind();
   engine.resetCurrentLoop();
@@ -521,10 +761,12 @@ btnRetryLoop.addEventListener('click', () => {
 });
 
 btnRestartStage.addEventListener('click', () => {
+  soundFX.playUIClick();
   handleResetStage();
 });
 
 btnNextStage.addEventListener('click', () => {
+  soundFX.playUIClick();
   modalStageClear.classList.add('hidden');
   const hasNext = engine.nextLevel();
   if (hasNext) {
@@ -534,18 +776,89 @@ btnNextStage.addEventListener('click', () => {
     triggerThorneComm('START');
     restoreFocus();
   } else {
+    updateGrandCampaignModal();
     modalGrandClear.classList.remove('hidden');
   }
 });
 
+btnStageClearRetry?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  modalStageClear.classList.add('hidden');
+  handleResetStage();
+});
+
+btnStageClearMenu?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  closeAllModals();
+  modalTitle.classList.remove('hidden');
+  updateStageSelectBadges();
+});
+
+btnResumeGame?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  handleTogglePause();
+});
+
+btnPauseRestartStage?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  modalPause?.classList.add('hidden');
+  handleResetStage();
+});
+
+btnPauseRewindLoop?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  modalPause?.classList.add('hidden');
+  handleRewind();
+});
+
+btnPauseSettings?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  toggleSettingsModal();
+});
+
+btnPauseHelp?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  toggleHelpModal();
+});
+
+btnPauseToMenu?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  closeAllModals();
+  modalTitle.classList.remove('hidden');
+  updateStageSelectBadges();
+});
+
+btnTitleHelp?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  toggleHelpModal();
+});
+
+btnTitleDossier?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  toggleDossierModal();
+});
+
+btnTitleSettings?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  toggleSettingsModal();
+});
+
 btnReplayAll.addEventListener('click', () => {
+  soundFX.playUIClick();
   modalGrandClear.classList.add('hidden');
-  engine.loadLevel(0);
-  isStandby = true;
-  soundFX.startStealthAtmosphere();
-  updateHUD();
-  triggerThorneComm('START');
-  restoreFocus();
+  loadStage(0);
+});
+
+btnGrandDossier?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  toggleDossierModal();
+});
+
+btnGrandToMenu?.addEventListener('click', () => {
+  soundFX.playUIClick();
+  closeAllModals();
+  modalTitle.classList.remove('hidden');
+  updateStageSelectBadges();
 });
 
 function updateHUD(): void {
@@ -734,7 +1047,16 @@ function processSimEvents(events: SimEvent[]): void {
         }
       }
 
+      const starsEarned = isGhost ? 3 : isTactical ? 2 : 1;
+      const elapsedSec = state.currentTick * 0.02;
+      saveStageRecord(currentIdx, starsEarned, elapsedSec, state.currentLoopIndex);
+      try {
+        localStorage.setItem('timeloop_last_stage', String(Math.min(total - 1, currentIdx + 1)));
+      } catch {}
+      updateStageSelectBadges();
+
       if (currentIdx === total - 1) {
+        updateGrandCampaignModal();
         modalGrandClear.classList.remove('hidden');
       } else {
         stageClearTitle.textContent = `${engine.getLevel().name} COMPLETE`;
@@ -782,4 +1104,6 @@ function gameLoop(currentTime: number): void {
   requestAnimationFrame(gameLoop);
 }
 
+// Initialize stage badges and UI state
+updateStageSelectBadges();
 requestAnimationFrame(gameLoop);
